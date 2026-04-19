@@ -2,7 +2,8 @@
 
 A powerful Chrome extension that transforms your new tab page into a personalized dashboard. Manage bookmarks, organize tasks with Google Todo integration, and stay on top of your schedule with Google Calendar sync.
 
-<img width="1921" height="1040" alt="image" src="https://github.com/user-attachments/assets/630346da-391a-4c6a-a22c-1452e1b15da0" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c200e5c1-354e-4be2-a154-6a8e9b94c558" />
+
 
 ## Features
 
