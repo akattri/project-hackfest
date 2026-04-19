@@ -42,29 +42,42 @@ class HackfestDashboard {
     }
 
     checkAuthStatus() {
+        console.log('Checking authentication status...');
         chrome.identity.getAuthToken({ interactive: false }, (token) => {
+            if (chrome.runtime.lastError) {
+                console.warn('Auth error on check:', chrome.runtime.lastError);
+                this.updateAuthUI(false);
+                return;
+            }
             if (token) {
+                console.log('✓ Token found:', token.substring(0, 20) + '...');
                 this.accessToken = token;
                 this.updateAuthUI(true);
                 this.loadGoogleData();
             } else {
+                console.log('No token found. User needs to sign in.');
                 this.updateAuthUI(false);
             }
         });
     }
 
     handleAuth() {
+        console.log('Starting authentication...');
         chrome.identity.getAuthToken({ interactive: true }, (token) => {
             if (chrome.runtime.lastError) {
-                alert('Authentication failed. Make sure you have set up OAuth2 credentials.');
                 console.error('Auth error:', chrome.runtime.lastError);
+                alert(`Authentication failed: ${chrome.runtime.lastError.message}\n\nMake sure you have:\n1. Set Google Client ID in manifest.json\n2. Enabled Google Tasks API\n3. Enabled Google Calendar API`);
                 return;
             }
             if (token) {
+                console.log('✓ Authentication successful. Token:', token.substring(0, 20) + '...');
                 this.accessToken = token;
                 this.updateAuthUI(true);
                 this.loadGoogleData();
                 chrome.storage.local.set({ 'hackfest_token': token });
+            } else {
+                console.warn('No token returned from authentication');
+                alert('Authentication failed: No token received');
             }
         });
     }
@@ -156,7 +169,10 @@ class HackfestDashboard {
     }
 
     loadTodos() {
-        if (!this.accessToken) return;
+        if (!this.accessToken) {
+            console.warn('No access token available');
+            return;
+        }
 
         this.todosList.innerHTML = '<div class="loading">Loading tasks...</div>';
 
@@ -165,23 +181,34 @@ class HackfestDashboard {
                 'Authorization': `Bearer ${this.accessToken}`
             }
         })
-        .then(res => this.handleResponse(res))
+        .then(res => {
+            console.log('Tasklists response:', res.status);
+            return this.handleResponse(res);
+        })
         .then(data => {
+            console.log('Tasklists data:', data);
             if (!data.items || data.items.length === 0) {
+                console.warn('No task lists found');
                 this.todosList.innerHTML = '';
                 this.todosEmpty.classList.add('visible');
-                return;
+                return Promise.reject(new Error('No task lists'));
             }
 
             const defaultListId = data.items[0].id;
+            console.log('Loading tasks from list:', defaultListId);
+            
             return fetch(`https://www.googleapis.com/tasks/v1/lists/${defaultListId}/tasks?showCompleted=true`, {
                 headers: {
                     'Authorization': `Bearer ${this.accessToken}`
                 }
             });
         })
-        .then(res => this.handleResponse(res))
+        .then(res => {
+            console.log('Tasks response:', res.status);
+            return this.handleResponse(res);
+        })
         .then(data => {
+            console.log('Tasks data:', data);
             this.todosList.innerHTML = '';
 
             if (!data.items || data.items.length === 0) {
@@ -202,24 +229,46 @@ class HackfestDashboard {
                 this.todosList.appendChild(todoDiv);
             });
         })
-        .catch(error => this.handleError('loading tasks', error));
+        .catch(error => {
+            console.error('Error loading tasks:', error);
+            this.todosList.innerHTML = '';
+            this.todosEmpty.innerHTML = `<div class="empty-state visible">Error loading tasks: ${error.message}</div>`;
+        });
     }
 
     addTodo() {
         const title = this.newTodoInput.value.trim();
-        if (!title || !this.accessToken) return;
+        
+        if (!title) {
+            alert('Please enter a task title');
+            return;
+        }
+        
+        if (!this.accessToken) {
+            alert('Please sign in with Google first');
+            return;
+        }
+
+        // Show loading state
+        this.addTodoBtn.textContent = 'Adding...';
+        this.addTodoBtn.disabled = true;
 
         fetch('https://www.googleapis.com/tasks/v1/tasklists', {
             headers: {
                 'Authorization': `Bearer ${this.accessToken}`
             }
         })
-        .then(res => this.handleResponse(res))
+        .then(res => {
+            console.log('Task lists response:', res.status);
+            return this.handleResponse(res);
+        })
         .then(data => {
+            console.log('Task lists data:', data);
             if (!data.items || data.items.length === 0) {
-                throw new Error('No task lists found');
+                throw new Error('No task lists found. Please create one in Google Tasks first.');
             }
             const defaultListId = data.items[0].id;
+            console.log('Using task list:', defaultListId);
 
             return fetch(`https://www.googleapis.com/tasks/v1/lists/${defaultListId}/tasks`, {
                 method: 'POST',
@@ -230,12 +279,23 @@ class HackfestDashboard {
                 body: JSON.stringify({ title })
             });
         })
-        .then(res => this.handleResponse(res))
-        .then(() => {
+        .then(res => {
+            console.log('Add task response:', res.status);
+            return this.handleResponse(res);
+        })
+        .then((data) => {
+            console.log('Task added successfully:', data);
             this.newTodoInput.value = '';
+            this.addTodoBtn.textContent = 'Add';
+            this.addTodoBtn.disabled = false;
             this.loadTodos();
         })
-        .catch(error => this.handleError('adding task', error));
+        .catch(error => {
+            console.error('Error adding task:', error);
+            this.addTodoBtn.textContent = 'Add';
+            this.addTodoBtn.disabled = false;
+            alert(`Failed to add task: ${error.message}`);
+        });
     }
 
     deleteTodo(taskId) {
@@ -301,14 +361,23 @@ class HackfestDashboard {
                 this.updateAuthUI(false);
                 throw new Error('Authentication expired. Please sign in again.');
             }
-            throw new Error(`API error: ${response.status}`);
+            if (response.status === 403) {
+                throw new Error('Access denied. Make sure Google Tasks and Calendar APIs are enabled.');
+            }
+            if (response.status === 404) {
+                throw new Error('API endpoint not found. Check API configuration.');
+            }
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
         }
-        return response.json();
+        return response.json().catch(err => {
+            console.error('Failed to parse JSON response:', err);
+            throw new Error('Invalid API response');
+        });
     }
 
     handleError(action, error) {
         console.error(`Error ${action}:`, error);
-        // Silently log errors to avoid UI clutter
+        console.error('Full error:', error.message);
     }
 
     escapeHtml(text) {
