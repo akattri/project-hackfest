@@ -4,6 +4,7 @@ class HackfestDashboard {
     constructor() {
         this.accessToken = null;
         this.userEmail = null;
+        this.isLocalAuth = false;
         this.init();
     }
 
@@ -59,6 +60,12 @@ class HackfestDashboard {
 
     checkAuthStatus() {
         console.log('Checking authentication status...');
+        if (!this.hasConfiguredGoogleClientId()) {
+            console.log('Google OAuth client ID is not configured. Running in local mode.');
+            this.updateAuthUI(false);
+            return;
+        }
+
         chrome.identity.getAuthToken({ interactive: false }, (token) => {
             if (chrome.runtime.lastError) {
                 console.warn('Auth error on check:', chrome.runtime.lastError);
@@ -79,6 +86,15 @@ class HackfestDashboard {
 
     handleAuth() {
         console.log('Starting authentication...');
+        if (!this.hasConfiguredGoogleClientId()) {
+            console.log('Using local sign-in fallback (no Google client ID configured).');
+            this.isLocalAuth = true;
+            this.accessToken = null;
+            this.updateAuthUI(true);
+            return;
+        }
+
+        this.isLocalAuth = false;
         chrome.identity.getAuthToken({ interactive: true }, (token) => {
             if (chrome.runtime.lastError) {
                 console.error('Auth error:', chrome.runtime.lastError);
@@ -102,8 +118,18 @@ class HackfestDashboard {
         if (isAuthenticated) {
             this.authButton.textContent = '✓ Signed In';
             this.authButton.disabled = true;
-            this.todosEmpty.classList.remove('visible');
-            this.calendarEmpty.classList.remove('visible');
+            if (this.isLocalAuth) {
+                this.userEmailEl.textContent = 'Local mode';
+                this.todosEmpty.textContent = 'Google Tasks is unavailable until a Google Client ID is configured.';
+                this.calendarEmpty.textContent = 'Google Calendar is unavailable until a Google Client ID is configured.';
+                this.todosEmpty.classList.add('visible');
+                this.calendarEmpty.classList.add('visible');
+                this.todosList.innerHTML = '';
+                this.calendarEvents.innerHTML = '';
+            } else {
+                this.todosEmpty.classList.remove('visible');
+                this.calendarEmpty.classList.remove('visible');
+            }
         } else {
             this.authButton.textContent = 'Sign in with Google';
             this.authButton.disabled = false;
@@ -111,6 +137,11 @@ class HackfestDashboard {
             this.todosEmpty.classList.add('visible');
             this.calendarEmpty.classList.add('visible');
         }
+    }
+
+    hasConfiguredGoogleClientId() {
+        const clientId = chrome.runtime.getManifest()?.oauth2?.client_id;
+        return !!clientId && clientId !== 'YOUR_GOOGLE_CLIENT_ID';
     }
 
     loadBookmarks() {
@@ -223,7 +254,7 @@ class HackfestDashboard {
     }
 
     loadTodos() {
-        if (!this.accessToken) {
+        if (!this.accessToken || this.isLocalAuth) {
             console.warn('No access token available');
             return;
         }
@@ -359,7 +390,7 @@ class HackfestDashboard {
     }
 
     loadCalendar() {
-        if (!this.accessToken) return;
+        if (!this.accessToken || this.isLocalAuth) return;
 
         this.calendarEvents.innerHTML = '<div class="loading">Loading events...</div>';
 

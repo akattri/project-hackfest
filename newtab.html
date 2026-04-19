@@ -8,7 +8,13 @@
   </head>
   <body>
     <div class="container">
-      <div class="corner-title">Archon</div>
+      <div class="top-bar">
+        <div class="corner-title">Archon</div>
+        <div class="auth-section top-auth">
+          <div id="user-email" class="user-email"></div>
+          <button id="auth-button" class="btn btn-primary" type="button">Sign in with Google</button>
+        </div>
+      </div>
 
       <main class="dashboard">
         <section class="card bookmarks-card">
@@ -24,16 +30,6 @@
 
           <div id="bookmarks-empty" class="empty-state visible">No bookmarks found.</div>
           <div id="bookmarks-list" class="bookmarks-list"></div>
-        </section>
-
-        <section class="card archon-card">
-          <div class="archon-row">
-            <h2>Archon</h2>
-            <div class="auth-section">
-              <div id="user-email" class="user-email"></div>
-              <button id="auth-button" class="btn btn-primary" type="button">Sign in with Google</button>
-            </div>
-          </div>
         </section>
 
         <section class="card tasks-card">
