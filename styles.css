@@ -250,3 +250,22 @@ input[type="text"]:focus {
         font-size: 1.8em;
     }
 }
+
+.footer {
+    margin-top: 22px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    color: #666;
+    font-size: 0.9em;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.footer-sep {
+    opacity: 0.6;
+}
