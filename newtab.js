@@ -98,7 +98,16 @@ class HackfestDashboard {
     }
 
     loadBookmarks() {
+        console.log('Loading bookmarks...');
         chrome.bookmarks.getTree((bookmarkTreeNodes) => {
+            if (chrome.runtime.lastError) {
+                console.error('Bookmarks API error:', chrome.runtime.lastError);
+                this.bookmarksList.innerHTML = '';
+                this.bookmarksEmpty.innerHTML = `<div class="empty-state visible">Error loading bookmarks: ${chrome.runtime.lastError.message}</div>`;
+                return;
+            }
+
+            console.log('Bookmark tree retrieved:', bookmarkTreeNodes.length, 'root nodes');
             this.bookmarksList.innerHTML = '';
             const bookmarks = [];
 
@@ -113,8 +122,10 @@ class HackfestDashboard {
             };
 
             processBookmarks(bookmarkTreeNodes);
+            console.log('Found', bookmarks.length, 'bookmarks');
 
             if (bookmarks.length === 0) {
+                console.log('No bookmarks found');
                 this.bookmarksEmpty.classList.add('visible');
                 return;
             }
@@ -137,27 +148,52 @@ class HackfestDashboard {
 
     addBookmark() {
         const title = prompt('Enter bookmark title:');
-        if (!title) return;
+        if (!title) {
+            console.log('Bookmark creation cancelled by user (no title)');
+            return;
+        }
 
         const url = prompt('Enter bookmark URL (e.g., https://example.com):');
-        if (!url) return;
+        if (!url) {
+            console.log('Bookmark creation cancelled by user (no URL)');
+            return;
+        }
 
         // Validate URL
         try {
             new URL(url);
         } catch {
+            console.error('Invalid URL format:', url);
             alert('Invalid URL. Please include http:// or https://');
             return;
         }
 
-        chrome.bookmarks.create({ title, url }, () => {
+        console.log('Creating bookmark:', { title, url });
+        
+        chrome.bookmarks.create({ title, url }, (newBookmark) => {
+            if (chrome.runtime.lastError) {
+                console.error('Failed to create bookmark:', chrome.runtime.lastError);
+                alert(`Failed to add bookmark: ${chrome.runtime.lastError.message}`);
+                return;
+            }
+
+            console.log('✓ Bookmark created successfully:', newBookmark);
+            alert(`✓ Bookmark added: "${title}"`);
             this.loadBookmarks();
         });
     }
 
     deleteBookmark(bookmarkId) {
+        console.log('Deleting bookmark:', bookmarkId);
         if (confirm('Delete this bookmark?')) {
             chrome.bookmarks.remove(bookmarkId, () => {
+                if (chrome.runtime.lastError) {
+                    console.error('Failed to delete bookmark:', chrome.runtime.lastError);
+                    alert(`Failed to delete bookmark: ${chrome.runtime.lastError.message}`);
+                    return;
+                }
+
+                console.log('✓ Bookmark deleted successfully');
                 this.loadBookmarks();
             });
         }
