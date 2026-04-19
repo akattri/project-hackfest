@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hackfest Landing Page</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Welcome to Hackfest</h1>
+            <div class="auth-section">
+                <button id="auth-button">Sign in with Google</button>
+            </div>
+        </header>
+        <main>
+            <section class="bookmarks">
+                <h2>Bookmarks</h2>
+                <div id="bookmarks-list"></div>
+                <button id="add-bookmark">Add Bookmark</button>
+            </section>
+            <section class="todos">
+                <h2>Google Todo</h2>
+                <div id="todos-list"></div>
+                <input type="text" id="new-todo" placeholder="Add new task">
+                <button id="add-todo">Add Task</button>
+            </section>
+            <section class="calendar">
+                <h2>Google Calendar</h2>
+                <div id="calendar-events"></div>
+            </section>
+        </main>
+    </div>
+    <script src="newtab.js"></script>
+</body>
+</html>
