@@ -6,10 +6,39 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #333;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(80, 110, 255, 0.24), transparent 34%),
+        radial-gradient(circle at 80% 10%, rgba(193, 84, 255, 0.2), transparent 28%),
+        radial-gradient(circle at 75% 78%, rgba(46, 179, 255, 0.16), transparent 35%),
+        radial-gradient(circle at 40% 95%, rgba(130, 86, 255, 0.14), transparent 30%),
+        #030307;
+    color: #e8ebff;
     min-height: 100vh;
     padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+body::before,
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+
+body::before {
+    background-image: radial-gradient(1px 1px at 12% 28%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 23% 72%, rgba(255, 255, 255, 0.45), transparent),
+        radial-gradient(1px 1px at 68% 20%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 84% 64%, rgba(255, 255, 255, 0.45), transparent),
+        radial-gradient(1px 1px at 44% 50%, rgba(255, 255, 255, 0.4), transparent);
+    opacity: 0.75;
+}
+
+body::after {
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.03), transparent 60%);
 }
 
 .container {
@@ -52,21 +81,39 @@ header h1 {
 
 .dashboard {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
+    grid-template-areas:
+        "bookmarks bookmarks"
+        "tasks calendar";
     gap: 20px;
 }
 
+.dashboard .card:nth-child(1) {
+    grid-area: bookmarks;
+}
+
+.dashboard .card:nth-child(2) {
+    grid-area: tasks;
+}
+
+.dashboard .card:nth-child(3) {
+    grid-area: calendar;
+}
+
 .card {
-    background: white;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-radius: 12px;
     padding: 25px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
 }
 
 .card-header {
@@ -108,14 +155,14 @@ header h1 {
 }
 
 .btn-small {
-    background: #f0f0f0;
-    color: #333;
+    background: rgba(255, 255, 255, 0.2);
+    color: #e8ebff;
     padding: 8px 12px;
     font-size: 0.85em;
 }
 
 .btn-small:hover {
-    background: #e0e0e0;
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .btn-delete {
@@ -135,9 +182,19 @@ header h1 {
     margin-bottom: 15px;
 }
 
+.bookmarks-list {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+    max-height: none;
+}
+
 .bookmark, .todo, .event {
     padding: 12px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -148,20 +205,62 @@ header h1 {
     border-bottom: none;
 }
 
-.bookmark a {
-    color: #667eea;
+.bookmark {
+    flex: 0 0 130px;
+    min-height: 92px;
+    border-bottom: none;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.09);
+    padding: 6px;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.bookmark-link {
+    color: #b9c7ff;
     text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
     flex: 1;
+}
+
+.bookmark-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    padding: 3px;
+}
+
+.bookmark-title {
+    font-size: 0.84em;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
     word-break: break-word;
 }
 
-.bookmark a:hover {
+.bookmark-link:hover {
     text-decoration: underline;
-    color: #764ba2;
+    color: #d7c8ff;
+}
+
+.bookmark .btn-delete {
+    align-self: flex-end;
+    padding: 3px 8px;
+    font-size: 0.74em;
 }
 
 .todo{
-    background: #f9f9f9;
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     margin-bottom: 8px;
 }
@@ -172,11 +271,11 @@ header h1 {
 
 .todo.completed .todo-content {
     text-decoration: line-through;
-    color: #999;
+    color: rgba(232, 235, 255, 0.65);
 }
 
 .event {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(125, 145, 255, 0.2) 0%, rgba(174, 98, 255, 0.2) 100%);
     border-radius: 6px;
     flex-direction: column;
     align-items: flex-start;
@@ -187,7 +286,7 @@ header h1 {
 
 .event-time {
     font-size: 0.85em;
-    color: #667eea;
+    color: #c3d2ff;
     font-weight: 600;
 }
 
@@ -199,7 +298,7 @@ header h1 {
 .empty-state {
     text-align: center;
     padding: 30px 20px;
-    color: #999;
+    color: rgba(232, 235, 255, 0.72);
     display: none;
 }
 
@@ -209,7 +308,9 @@ header h1 {
 
 input[type="text"] {
     padding: 12px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.28);
+    color: #e8ebff;
     border-radius: 6px;
     font-size: 0.95em;
     transition: border-color 0.2s;
@@ -217,7 +318,7 @@ input[type="text"] {
 
 input[type="text"]:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #8ea0ff;
 }
 
 .todo-input-group {
@@ -232,12 +333,16 @@ input[type="text"]:focus {
 .loading {
     text-align: center;
     padding: 20px;
-    color: #999;
+    color: rgba(232, 235, 255, 0.72);
 }
 
 @media (max-width: 768px) {
     .dashboard {
         grid-template-columns: 1fr;
+        grid-template-areas:
+            "bookmarks"
+            "tasks"
+            "calendar";
     }
     
     .header-content {

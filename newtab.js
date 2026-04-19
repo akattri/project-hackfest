@@ -135,9 +135,11 @@ class HackfestDashboard {
             bookmarks.forEach(bookmark => {
                 const bookmarkDiv = document.createElement('div');
                 bookmarkDiv.className = 'bookmark';
+                const faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(bookmark.url)}`;
                 bookmarkDiv.innerHTML = `
-                    <a href="${this.escapeHtml(bookmark.url)}" target="_blank" title="${this.escapeHtml(bookmark.title)}">
-                        ${this.escapeHtml(bookmark.title)}
+                    <a href="${this.escapeHtml(bookmark.url)}" class="bookmark-link" target="_blank" title="${this.escapeHtml(bookmark.title)}">
+                        <img class="bookmark-icon" src="${faviconUrl}" alt="" loading="lazy" />
+                        <span class="bookmark-title">${this.escapeHtml(bookmark.title)}</span>
                     </a>
                     <button class="btn btn-delete" onclick="dashboard.deleteBookmark('${bookmark.id}')">✕</button>
                 `;
