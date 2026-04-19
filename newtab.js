@@ -17,6 +17,8 @@ class HackfestDashboard {
     cacheElements() {
         this.authButton = document.getElementById('auth-button');
         this.userEmailEl = document.getElementById('user-email');
+        this.searchForm = document.getElementById('search-form');
+        this.searchInput = document.getElementById('global-search');
         this.bookmarksList = document.getElementById('bookmarks-list');
         this.bookmarksEmpty = document.getElementById('bookmarks-empty');
         this.addBookmarkBtn = document.getElementById('add-bookmark');
@@ -32,6 +34,7 @@ class HackfestDashboard {
 
     attachEventListeners() {
         this.authButton.addEventListener('click', () => this.handleAuth());
+        this.searchForm.addEventListener('submit', (e) => this.handleSearch(e));
         this.addBookmarkBtn.addEventListener('click', () => this.addBookmark());
         this.addTodoBtn.addEventListener('click', () => this.addTodo());
         this.refreshTodosBtn.addEventListener('click', () => this.loadTodos());
@@ -39,6 +42,19 @@ class HackfestDashboard {
         this.newTodoInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.addTodo();
         });
+    }
+
+    handleSearch(event) {
+        event.preventDefault();
+        const query = this.searchInput.value.trim();
+        if (!query) return;
+
+        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+        if (chrome?.tabs?.create) {
+            chrome.tabs.create({ url: searchUrl });
+        } else {
+            window.location.href = searchUrl;
+        }
     }
 
     checkAuthStatus() {

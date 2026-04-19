@@ -8,19 +8,15 @@
   </head>
   <body>
     <div class="container">
-      <header>
-        <div class="header-content">
-          <h1>Hackfest Landing Page</h1>
-
-          <div class="auth-section">
-            <div id="user-email" class="user-email"></div>
-            <button id="auth-button" class="btn btn-primary" type="button">Sign in with Google</button>
-          </div>
-        </div>
-      </header>
+      <div class="corner-title">Archon</div>
 
       <main class="dashboard">
-        <section class="card">
+        <section class="card bookmarks-card">
+          <form id="search-form" class="search-section">
+            <input id="global-search" type="text" placeholder="Search the web..." />
+            <button class="btn btn-primary" type="submit">Search</button>
+          </form>
+
           <div class="card-header">
             <h2>📑 Bookmarks</h2>
             <button id="add-bookmark" class="btn btn-small" type="button">+ Add</button>
@@ -30,7 +26,17 @@
           <div id="bookmarks-list" class="bookmarks-list"></div>
         </section>
 
-        <section class="card">
+        <section class="card archon-card">
+          <div class="archon-row">
+            <h2>Archon</h2>
+            <div class="auth-section">
+              <div id="user-email" class="user-email"></div>
+              <button id="auth-button" class="btn btn-primary" type="button">Sign in with Google</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card tasks-card">
           <div class="card-header">
             <h2>✓ Tasks</h2>
             <button id="refresh-todos" class="btn btn-small" type="button">↻ Sync</button>
@@ -45,7 +51,7 @@
           </div>
         </section>
 
-        <section class="card">
+        <section class="card calendar-card">
           <div class="card-header">
             <h2>📅 Calendar</h2>
             <button id="refresh-calendar" class="btn btn-small" type="button">↻ Sync</button>
@@ -56,11 +62,6 @@
         </section>
       </main>
 
-      <footer class="footer">
-        <span>Hackfest Extension</span>
-        <span class="footer-sep">•</span>
-        <span>Bookmarks • Tasks • Calendar</span>
-      </footer>
     </div>
 
     <script src="newtab.js"></script>

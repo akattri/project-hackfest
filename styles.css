@@ -44,28 +44,7 @@ body::after {
 .container {
     max-width: 1400px;
     margin: 0 auto;
-}
-
-header {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 30px;
-    border-radius: 12px;
-    margin-bottom: 30px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
-
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-header h1 {
-    font-size: 2.5em;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    position: relative;
 }
 
 .auth-section {
@@ -76,7 +55,7 @@ header h1 {
 
 .user-email {
     font-size: 0.9em;
-    color: #666;
+    color: rgba(232, 235, 255, 0.78);
 }
 
 .dashboard {
@@ -84,19 +63,25 @@ header h1 {
     grid-template-columns: repeat(2, minmax(320px, 1fr));
     grid-template-areas:
         "bookmarks bookmarks"
-        "tasks calendar";
+        "tasks calendar"
+        "archon archon";
     gap: 20px;
 }
 
-.dashboard .card:nth-child(1) {
+.bookmarks-card {
     grid-area: bookmarks;
 }
 
-.dashboard .card:nth-child(2) {
+.archon-card {
+    grid-area: archon;
+    padding: 14px 18px;
+}
+
+.tasks-card {
     grid-area: tasks;
 }
 
-.dashboard .card:nth-child(3) {
+.calendar-card {
     grid-area: calendar;
 }
 
@@ -128,6 +113,24 @@ header h1 {
     margin: 0;
 }
 
+.corner-title {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    width: fit-content;
+    margin-bottom: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(232, 235, 255, 0.9);
+    font-size: 0.88em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
 .btn {
     padding: 10px 15px;
     border: none;
@@ -141,7 +144,8 @@ header h1 {
 .btn-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 12px 24px;
+    padding: 8px 14px;
+    font-size: 0.85em;
 }
 
 .btn-primary:hover {
@@ -152,6 +156,16 @@ header h1 {
 .btn-primary:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.search-section {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.search-section input {
+    flex: 1;
 }
 
 .btn-small {
@@ -336,41 +350,32 @@ input[type="text"]:focus {
     color: rgba(232, 235, 255, 0.72);
 }
 
+.archon-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.archon-row h2 {
+    margin: 0;
+    font-size: 1.05em;
+    font-weight: 600;
+}
+
 @media (max-width: 768px) {
     .dashboard {
         grid-template-columns: 1fr;
         grid-template-areas:
             "bookmarks"
             "tasks"
-            "calendar";
+            "calendar"
+            "archon";
     }
     
-    .header-content {
-        flex-direction: column;
-        gap: 15px;
+    .archon-row {
         align-items: flex-start;
+        flex-direction: column;
     }
-    
-    header h1 {
-        font-size: 1.8em;
-    }
-}
-
-.footer {
-    margin-top: 22px;
-    padding: 14px 18px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    color: #666;
-    font-size: 0.9em;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.footer-sep {
-    opacity: 0.6;
 }
