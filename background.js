@@ -1,17 +1,15 @@
-// Background script for Hackfest extension
+// background.js - Service worker for Hackfest extension
 
-// Handle authentication
-function authenticate() {
-    return new Promise((resolve, reject) => {
-        chrome.identity.getAuthToken({ interactive: true }, function(token) {
-            if (chrome.runtime.lastError) {
-                reject(chrome.runtime.lastError);
-            } else {
-                resolve(token);
-            }
-        });
-    });
-}
+// Handle extension installation
+chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason === 'install') {
+        chrome.tabs.create({ url: 'chrome://newtab' });
+    }
+});
 
-// Export for use in other scripts
-window.authenticate = authenticate;
+// Invalidate token when user signs out
+chrome.identity.onSignInChanged.addListener((account, signedIn) => {
+    if (!signedIn) {
+        chrome.storage.local.remove('hackfest_token');
+    }
+});

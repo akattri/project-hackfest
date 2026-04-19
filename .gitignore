@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+
+# Environment
+.env
+.env.local
+config.json
+
+# Credentials (Never commit these!)
+*.pem
+*.key
+oauth_credentials.json
+
+# Temporary
+*.log
+.tmp/

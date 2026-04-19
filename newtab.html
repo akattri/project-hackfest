@@ -9,26 +9,45 @@
 <body>
     <div class="container">
         <header>
-            <h1>Welcome to Hackfest</h1>
-            <div class="auth-section">
-                <button id="auth-button">Sign in with Google</button>
+            <div class="header-content">
+                <h1>🚀 Hackfest Dashboard</h1>
+                <div class="auth-section">
+                    <button id="auth-button" class="btn btn-primary">Sign in with Google</button>
+                    <span id="user-email" class="user-email"></span>
+                </div>
             </div>
         </header>
-        <main>
-            <section class="bookmarks">
-                <h2>Bookmarks</h2>
-                <div id="bookmarks-list"></div>
-                <button id="add-bookmark">Add Bookmark</button>
+        
+        <main class="dashboard">
+            <section class="card bookmarks-card">
+                <div class="card-header">
+                    <h2>📑 Bookmarks</h2>
+                    <button id="add-bookmark" class="btn btn-small">+ Add</button>
+                </div>
+                <div id="bookmarks-list" class="bookmarks-list"></div>
+                <div id="bookmarks-empty" class="empty-state">No bookmarks yet</div>
             </section>
-            <section class="todos">
-                <h2>Google Todo</h2>
-                <div id="todos-list"></div>
-                <input type="text" id="new-todo" placeholder="Add new task">
-                <button id="add-todo">Add Task</button>
+
+            <section class="card todos-card">
+                <div class="card-header">
+                    <h2>✓ Tasks</h2>
+                    <button id="refresh-todos" class="btn btn-small">↻ Sync</button>
+                </div>
+                <div id="todos-list" class="todos-list"></div>
+                <div class="todo-input-group">
+                    <input type="text" id="new-todo" placeholder="Add new task..." class="todo-input">
+                    <button id="add-todo" class="btn btn-small">Add</button>
+                </div>
+                <div id="todos-empty" class="empty-state">Sign in to see tasks</div>
             </section>
-            <section class="calendar">
-                <h2>Google Calendar</h2>
-                <div id="calendar-events"></div>
+
+            <section class="card calendar-card">
+                <div class="card-header">
+                    <h2>📅 Upcoming Events</h2>
+                    <button id="refresh-calendar" class="btn btn-small">↻ Sync</button>
+                </div>
+                <div id="calendar-events" class="calendar-events"></div>
+                <div id="calendar-empty" class="empty-state">Sign in to see events</div>
             </section>
         </main>
     </div>

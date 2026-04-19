@@ -1,0 +1,14 @@
+{
+  "name": "hackfest-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for a custom landing page with bookmarks, tasks, and calendar",
+  "scripts": {
+    "build": "node build.js",
+    "package": "npm run build && npm run zip",
+    "zip": "node scripts/create-zip.js"
+  },
+  "devDependencies": {
+    "crx": "^5.0.1",
+    "archiver": "^5.3.1"
+  }
+}
