@@ -13,13 +13,13 @@ A homepage chrome extension that transforms your new tab page into a personalize
 - Delete bookmarks with one click
 - Organized and easy to navigate
 
-### ✓ Google Tasks Integration
+### ✓ Google Tasks Integration (WIP)
 - Sync with your Google Tasks (Google Todo)
 - Create new tasks from the dashboard
 - View all your tasks at a glance
 - One-click refresh to stay in sync
 
-### 📅 Google Calendar Sync
+### 📅 Google Calendar Sync (WIP)
 - Display upcoming events for the next 30 days
 - See event dates and times
 - Stay on top of your schedule
