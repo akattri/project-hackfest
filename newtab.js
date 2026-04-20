@@ -13,9 +13,26 @@ class HackfestDashboard {
         this.attachEventListeners();
         this.checkAuthStatus();
         this.loadBookmarks();
+        this.loadLayoutPreference();
+    }
+
+    loadLayoutPreference() {
+        chrome.storage.local.get(['hackfest_layout'], (result) => {
+            if (result.hackfest_layout === '3-col') {
+                this.dashboardEl.classList.add('layout-3-col');
+            }
+        });
+    }
+
+    toggleLayout() {
+        this.dashboardEl.classList.toggle('layout-3-col');
+        const is3Col = this.dashboardEl.classList.contains('layout-3-col');
+        chrome.storage.local.set({ 'hackfest_layout': is3Col ? '3-col' : 'default' });
     }
 
     cacheElements() {
+        this.dashboardEl = document.querySelector('.dashboard');
+        this.layoutToggleBtn = document.getElementById('layout-toggle');
         this.authButton = document.getElementById('auth-button');
         this.userEmailEl = document.getElementById('user-email');
         this.searchForm = document.getElementById('search-form');
@@ -35,6 +52,7 @@ class HackfestDashboard {
     }
 
     attachEventListeners() {
+        this.layoutToggleBtn.addEventListener('click', () => this.toggleLayout());
         this.authButton.addEventListener('click', () => this.handleAuth());
         this.searchForm.addEventListener('submit', (e) => this.handleSearch(e));
         this.addBookmarkBtn.addEventListener('click', () => this.addBookmark());

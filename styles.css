@@ -104,11 +104,20 @@ h2 {
     display: grid;
     grid-template-columns: repeat(2, minmax(320px, 1fr));
     grid-template-areas:
+        "search search"
         "bookmarks bookmarks"
         "tasks calendar";
     gap: 24px;
 }
 
+.dashboard.layout-3-col {
+    grid-template-columns: repeat(3, minmax(300px, 1fr));
+    grid-template-areas:
+        "search search search"
+        "bookmarks tasks calendar";
+}
+
+.search-card { grid-area: search; }
 .bookmarks-card { grid-area: bookmarks; }
 .tasks-card { grid-area: tasks; }
 .calendar-card { grid-area: calendar; }
@@ -442,6 +451,7 @@ input[type="text"]:focus {
     .dashboard {
         grid-template-columns: 1fr;
         grid-template-areas:
+            "search"
             "bookmarks"
             "tasks"
             "calendar";

@@ -12,18 +12,21 @@
         <div class="corner-title">Archon</div>
         <div class="auth-section top-auth">
           <div id="user-email" class="user-email"></div>
+          <button id="layout-toggle" class="btn btn-small" type="button" title="Toggle Layout">⊞</button>
           <button id="auth-button" class="btn btn-primary" type="button">Sign in with Google</button>
           <button id="sign-out-button" class="btn btn-small" type="button" style="display: none;">Sign Out</button>
         </div>
       </div>
 
       <main class="dashboard">
-        <section class="card bookmarks-card">
+        <section class="card search-card">
           <form id="search-form" class="search-section">
             <input id="global-search" type="text" placeholder="Search the web..." />
             <button class="btn btn-primary" type="submit">Search</button>
           </form>
+        </section>
 
+        <section class="card bookmarks-card">
           <div class="card-header">
             <h2>📑 Bookmarks</h2>
             <button id="add-bookmark" class="btn btn-small" type="button">+ Add</button>
