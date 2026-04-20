@@ -31,6 +31,7 @@ class HackfestDashboard {
         this.calendarEvents = document.getElementById('calendar-events');
         this.calendarEmpty = document.getElementById('calendar-empty');
         this.refreshCalendarBtn = document.getElementById('refresh-calendar');
+        this.signOutButton = document.getElementById('sign-out-button');
     }
 
     attachEventListeners() {
@@ -40,8 +41,13 @@ class HackfestDashboard {
         this.addTodoBtn.addEventListener('click', () => this.addTodo());
         this.refreshTodosBtn.addEventListener('click', () => this.loadTodos());
         this.refreshCalendarBtn.addEventListener('click', () => this.loadCalendar());
+        this.signOutButton.addEventListener('click', () => this.handleSignOut());
         this.newTodoInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.addTodo();
+        });
+
+        document.querySelectorAll('.trigger-auth').forEach(btn => {
+            btn.addEventListener('click', () => this.handleAuth());
         });
     }
 
@@ -66,19 +72,24 @@ class HackfestDashboard {
             return;
         }
 
-        chrome.identity.getAuthToken({ interactive: false }, (token) => {
-            if (chrome.runtime.lastError) {
-                console.warn('Auth error on check:', chrome.runtime.lastError);
-                this.updateAuthUI(false);
-                return;
-            }
-            if (token) {
-                console.log('✓ Token found:', token.substring(0, 20) + '...');
-                this.accessToken = token;
-                this.updateAuthUI(true);
-                this.loadGoogleData();
+        // Check for a saved token
+        chrome.storage.local.get(['hackfest_token'], (result) => {
+            if (result.hackfest_token) {
+                fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + result.hackfest_token)
+                .then(res => {
+                    if (res.ok) {
+                        console.log('✓ Saved token is still valid');
+                        this.accessToken = result.hackfest_token;
+                        this.updateAuthUI(true);
+                        this.loadGoogleData();
+                    } else {
+                        console.log('Saved token expired, clearing.');
+                        chrome.storage.local.remove('hackfest_token');
+                        this.updateAuthUI(false);
+                    }
+                })
+                .catch(() => this.updateAuthUI(false));
             } else {
-                console.log('No token found. User needs to sign in.');
                 this.updateAuthUI(false);
             }
         });
@@ -95,47 +106,86 @@ class HackfestDashboard {
         }
 
         this.isLocalAuth = false;
-        chrome.identity.getAuthToken({ interactive: true }, (token) => {
+
+        const manifest = chrome.runtime.getManifest();
+        const clientId = manifest.oauth2.client_id;
+        const scopes = manifest.oauth2.scopes.join(' ');
+        const redirectUrl = chrome.identity.getRedirectURL();
+
+        const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth' +
+            '?client_id=' + encodeURIComponent(clientId) +
+            '&response_type=token' +
+            '&redirect_uri=' + encodeURIComponent(redirectUrl) +
+            '&scope=' + encodeURIComponent(scopes);
+
+        chrome.identity.launchWebAuthFlow({
+            url: authUrl,
+            interactive: true
+        }, (responseUrl) => {
             if (chrome.runtime.lastError) {
                 console.error('Auth error:', chrome.runtime.lastError);
-                alert(`Authentication failed: ${chrome.runtime.lastError.message}\n\nMake sure you have:\n1. Set Google Client ID in manifest.json\n2. Enabled Google Tasks API\n3. Enabled Google Calendar API`);
+                alert('Authentication failed: ' + chrome.runtime.lastError.message);
                 return;
             }
-            if (token) {
-                console.log('✓ Authentication successful. Token:', token.substring(0, 20) + '...');
-                this.accessToken = token;
-                this.updateAuthUI(true);
-                this.loadGoogleData();
-                chrome.storage.local.set({ 'hackfest_token': token });
-            } else {
-                console.warn('No token returned from authentication');
-                alert('Authentication failed: No token received');
+
+            if (responseUrl) {
+                const url = new URL(responseUrl);
+                const params = new URLSearchParams(url.hash.substring(1));
+                const token = params.get('access_token');
+
+                if (token) {
+                    console.log('✓ Authentication successful');
+                    this.accessToken = token;
+                    chrome.storage.local.set({ 'hackfest_token': token });
+                    this.updateAuthUI(true);
+                    this.loadGoogleData();
+                } else {
+                    console.error('No access token in response');
+                    alert('Authentication failed: No token received');
+                }
             }
         });
     }
 
+    handleSignOut() {
+        if (this.isLocalAuth) {
+            this.isLocalAuth = false;
+            this.updateAuthUI(false);
+            return;
+        }
+
+        if (this.accessToken) {
+            fetch('https://accounts.google.com/o/oauth2/revoke?token=' + this.accessToken).catch(() => {});
+        }
+        this.accessToken = null;
+        chrome.storage.local.remove('hackfest_token');
+        this.updateAuthUI(false);
+        console.log('User signed out.');
+    }
+
     updateAuthUI(isAuthenticated) {
         if (isAuthenticated) {
-            this.authButton.textContent = '✓ Signed In';
-            this.authButton.disabled = true;
+            this.authButton.style.display = 'none';
+            this.signOutButton.style.display = 'block';
+            
             if (this.isLocalAuth) {
-                this.userEmailEl.textContent = 'Local mode';
-                this.todosEmpty.textContent = 'Google Tasks is unavailable until a Google Client ID is configured.';
-                this.calendarEmpty.textContent = 'Google Calendar is unavailable until a Google Client ID is configured.';
-                this.todosEmpty.classList.add('visible');
-                this.calendarEmpty.classList.add('visible');
-                this.todosList.innerHTML = '';
-                this.calendarEvents.innerHTML = '';
+                this.userEmailEl.textContent = 'Local User';
+                this.todosEmpty.classList.remove('visible');
+                this.calendarEmpty.classList.remove('visible');
+                this.loadGoogleData();
             } else {
                 this.todosEmpty.classList.remove('visible');
                 this.calendarEmpty.classList.remove('visible');
             }
         } else {
-            this.authButton.textContent = 'Sign in with Google';
+            this.authButton.style.display = 'block';
             this.authButton.disabled = false;
+            this.signOutButton.style.display = 'none';
             this.userEmailEl.textContent = '';
             this.todosEmpty.classList.add('visible');
             this.calendarEmpty.classList.add('visible');
+            this.todosList.innerHTML = '';
+            this.calendarEvents.innerHTML = '';
         }
     }
 
@@ -320,7 +370,7 @@ class HackfestDashboard {
 
         this.todosList.innerHTML = '<div class="loading">Loading tasks...</div>';
 
-        fetch('https://www.googleapis.com/tasks/v1/tasklists', {
+        fetch('https://www.googleapis.com/tasks/v1/users/@me/lists', {
             headers: {
                 'Authorization': `Bearer ${this.accessToken}`
             }
@@ -338,10 +388,10 @@ class HackfestDashboard {
                 return Promise.reject(new Error('No task lists'));
             }
 
-            const defaultListId = data.items[0].id;
-            console.log('Loading tasks from list:', defaultListId);
+            this.currentTaskListId = data.items[0].id;
+            console.log('Loading tasks from list:', this.currentTaskListId);
             
-            return fetch(`https://www.googleapis.com/tasks/v1/lists/${defaultListId}/tasks?showCompleted=true`, {
+            return fetch(`https://www.googleapis.com/tasks/v1/lists/${this.currentTaskListId}/tasks?showCompleted=true`, {
                 headers: {
                     'Authorization': `Bearer ${this.accessToken}`
                 }
@@ -368,8 +418,11 @@ class HackfestDashboard {
                 todoDiv.className = `todo ${isCompleted ? 'completed' : ''}`;
                 todoDiv.innerHTML = `
                     <div class="todo-content">${this.escapeHtml(task.title)}</div>
-                    <button class="btn btn-delete" onclick="dashboard.deleteTodo('${task.id}')">✕</button>
+                    <button class="btn btn-delete" title="Delete task">✕</button>
                 `;
+                todoDiv.querySelector('.btn-delete').addEventListener('click', () => {
+                    this.deleteTodo(task.id);
+                });
                 this.todosList.appendChild(todoDiv);
             });
         })
@@ -397,7 +450,7 @@ class HackfestDashboard {
         this.addTodoBtn.textContent = 'Adding...';
         this.addTodoBtn.disabled = true;
 
-        fetch('https://www.googleapis.com/tasks/v1/tasklists', {
+        fetch('https://www.googleapis.com/tasks/v1/users/@me/lists', {
             headers: {
                 'Authorization': `Bearer ${this.accessToken}`
             }
@@ -444,8 +497,22 @@ class HackfestDashboard {
 
     deleteTodo(taskId) {
         if (!confirm('Delete this task?')) return;
-        // Note: Full delete functionality requires task list ID
-        this.loadTodos();
+        
+        if (!this.accessToken || !this.currentTaskListId) return;
+
+        fetch(`https://www.googleapis.com/tasks/v1/lists/${this.currentTaskListId}/tasks/${taskId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${this.accessToken}` }
+        })
+        .then(res => {
+            if (res.status === 204 || res.ok) {
+                console.log('Task deleted');
+                this.loadTodos();
+            } else {
+                return this.handleResponse(res);
+            }
+        })
+        .catch(error => alert(`Failed to delete task: ${error.message}`));
     }
 
     loadCalendar() {

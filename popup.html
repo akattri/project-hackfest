@@ -50,12 +50,8 @@
     <div class="popup-content">
         <h3>🚀 Hackfest</h3>
         <p>Your custom landing page with bookmarks, tasks, and calendar.</p>
-        <button onclick="openNewTab()">📑 Open Dashboard</button>
+        <button id="open-dashboard">📑 Open Dashboard</button>
     </div>
-    <script>
-        function openNewTab() {
-            chrome.tabs.create({ url: 'chrome://newtab' });
-        }
-    </script>
+    <script src="scripts/popup.js"></script>
 </body>
 </html>

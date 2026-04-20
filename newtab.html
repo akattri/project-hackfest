@@ -13,6 +13,7 @@
         <div class="auth-section top-auth">
           <div id="user-email" class="user-email"></div>
           <button id="auth-button" class="btn btn-primary" type="button">Sign in with Google</button>
+          <button id="sign-out-button" class="btn btn-small" type="button" style="display: none;">Sign Out</button>
         </div>
       </div>
 
@@ -38,7 +39,10 @@
             <button id="refresh-todos" class="btn btn-small" type="button">↻ Sync</button>
           </div>
 
-          <div id="todos-empty" class="empty-state visible">Sign in to load your Google Tasks.</div>
+          <div id="todos-empty" class="empty-state visible">
+            <p>Please sign in to your account to get tasks info.</p>
+            <button class="btn btn-small trigger-auth" type="button">Sign In</button>
+          </div>
           <div id="todos-list" class="todos-list"></div>
 
           <div class="todo-input-group">
@@ -53,7 +57,10 @@
             <button id="refresh-calendar" class="btn btn-small" type="button">↻ Sync</button>
           </div>
 
-          <div id="calendar-empty" class="empty-state visible">Sign in to load upcoming events.</div>
+          <div id="calendar-empty" class="empty-state visible">
+            <p>Please sign in to your account to get calendar info.</p>
+            <button class="btn btn-small trigger-auth" type="button">Sign In</button>
+          </div>
           <div id="calendar-events" class="calendar-events"></div>
         </section>
       </main>

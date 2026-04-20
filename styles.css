@@ -400,10 +400,34 @@ input[type="text"]:focus {
     font-size: 14px;
     font-weight: 500;
     display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.empty-state p {
+    margin: 0;
+}
+
+.empty-state .trigger-auth {
+    background: var(--primary-btn-bg);
+    color: var(--primary-btn-text);
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s, opacity 0.15s;
+}
+
+.empty-state .trigger-auth:hover {
+    transform: scale(0.97);
+    opacity: 0.9;
 }
 
 .empty-state.visible {
-    display: block;
+    display: flex;
 }
 
 .loading {
