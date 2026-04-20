@@ -182,17 +182,76 @@ class HackfestDashboard {
             bookmarks.forEach(bookmark => {
                 const bookmarkDiv = document.createElement('div');
                 bookmarkDiv.className = 'bookmark';
+                bookmarkDiv.draggable = true;
+                bookmarkDiv.dataset.id = bookmark.id;
+                
+                bookmarkDiv.addEventListener('dragstart', (e) => this.handleDragStart(e, bookmarkDiv));
+                bookmarkDiv.addEventListener('dragover', (e) => this.handleDragOver(e));
+                bookmarkDiv.addEventListener('drop', (e) => this.handleDrop(e, bookmarkDiv));
+                bookmarkDiv.addEventListener('dragend', (e) => this.handleDragEnd(e));
+
                 const faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(bookmark.url)}`;
                 bookmarkDiv.innerHTML = `
                     <a href="${this.escapeHtml(bookmark.url)}" class="bookmark-link" target="_blank" title="${this.escapeHtml(bookmark.title)}">
                         <img class="bookmark-icon" src="${faviconUrl}" alt="" loading="lazy" />
                         <span class="bookmark-title">${this.escapeHtml(bookmark.title)}</span>
                     </a>
-                    <button class="btn btn-delete" onclick="dashboard.deleteBookmark('${bookmark.id}')">✕</button>
+                    <button class="btn btn-delete" title="Delete bookmark">✕</button>
                 `;
+                
+                bookmarkDiv.querySelector('.btn-delete').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.deleteBookmark(bookmark.id);
+                });
+
                 this.bookmarksList.appendChild(bookmarkDiv);
             });
         });
+    }
+
+    handleDragStart(e, el) {
+        e.dataTransfer.setData('text/plain', el.dataset.id);
+        el.classList.add('dragging');
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    handleDrop(e, targetEl) {
+        e.preventDefault();
+        const draggedId = e.dataTransfer.getData('text/plain');
+        if (!draggedId) return;
+        
+        const draggedEl = document.querySelector(`.bookmark[data-id="${draggedId}"]`);
+        
+        if (draggedEl && draggedEl !== targetEl) {
+            const allBookmarks = [...this.bookmarksList.querySelectorAll('.bookmark')];
+            const draggedIndex = allBookmarks.indexOf(draggedEl);
+            const targetIndex = allBookmarks.indexOf(targetEl);
+            
+            if (draggedIndex < targetIndex) {
+                targetEl.parentNode.insertBefore(draggedEl, targetEl.nextSibling);
+            } else {
+                targetEl.parentNode.insertBefore(draggedEl, targetEl);
+            }
+
+            chrome.bookmarks.get(targetEl.dataset.id, (targetNodes) => {
+                if (targetNodes && targetNodes.length > 0) {
+                    const targetNode = targetNodes[0];
+                    chrome.bookmarks.move(draggedId, {
+                        parentId: targetNode.parentId,
+                        index: targetNode.index
+                    });
+                }
+            });
+        }
+    }
+
+    handleDragEnd(e) {
+        e.target.classList.remove('dragging');
     }
 
     addBookmark() {
