@@ -2,7 +2,8 @@
 
 A homepage chrome extension that transforms your new tab page into a personalized dashboard. Manage bookmarks, organize tasks with Google Todo integration, and stay on top of your schedule with Google Calendar sync.
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c200e5c1-354e-4be2-a154-6a8e9b94c558" />
+<img width="1921" height="1040" alt="image" src="https://github.com/user-attachments/assets/1f377637-2b96-490b-b39e-023892716260" />
+
 
 
 ## Features
@@ -13,13 +14,13 @@ A homepage chrome extension that transforms your new tab page into a personalize
 - Delete bookmarks with one click
 - Organized and easy to navigate
 
-### ✓ Google Tasks Integration (WIP)
+### ✓ Google Tasks Integration (Beta)
 - Sync with your Google Tasks (Google Todo)
 - Create new tasks from the dashboard
 - View all your tasks at a glance
 - One-click refresh to stay in sync
 
-### 📅 Google Calendar Sync (WIP)
+### 📅 Google Calendar Sync (Beta)
 - Display upcoming events for the next 30 days
 - See event dates and times
 - Stay on top of your schedule
