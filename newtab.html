@@ -3,16 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hackfest Landing Page</title>
+    <title>New Tab</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   </head>
   <body>
     <div class="container">
-      <div class="top-bar">
+      <div class="top-bar" style="position: relative;">
         <div class="corner-title">Archon</div>
+        <div id="clock" class="clock"></div>
         <div class="auth-section top-auth">
           <div id="user-email" class="user-email"></div>
-          <button id="layout-toggle" class="btn btn-small" type="button" title="Toggle Layout">⊞</button>
+          <button id="layout-toggle" class="btn btn-small btn-icon" type="button" title="Toggle Layout"><span class="material-symbols-outlined">grid_view</span></button>
           <button id="auth-button" class="btn btn-primary" type="button">Sign in with Google</button>
           <button id="sign-out-button" class="btn btn-small" type="button" style="display: none;">Sign Out</button>
         </div>
@@ -21,15 +23,18 @@
       <main class="dashboard">
         <section class="card search-card">
           <form id="search-form" class="search-section">
-            <input id="global-search" type="text" placeholder="Search the web..." />
+            <div style="position: relative; flex: 1;">
+              <input id="global-search" type="text" placeholder="Search the web..." autocomplete="off" style="width: 100%;" />
+              <div id="search-suggestions" class="search-suggestions"></div>
+            </div>
             <button class="btn btn-primary" type="submit">Search</button>
           </form>
         </section>
 
         <section class="card bookmarks-card">
           <div class="card-header">
-            <h2>📑 Bookmarks</h2>
-            <button id="add-bookmark" class="btn btn-small" type="button">+ Add</button>
+            <h2 style="display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined">bookmarks</span> Bookmarks</h2>
+            <button id="add-bookmark" class="btn btn-small" type="button" style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add</button>
           </div>
 
           <div id="bookmarks-empty" class="empty-state visible">No bookmarks found.</div>
@@ -38,8 +43,9 @@
 
         <section class="card tasks-card">
           <div class="card-header">
-            <h2>✓ Tasks</h2>
-            <button id="refresh-todos" class="btn btn-small" type="button">↻ Sync</button>
+            <h2 style="display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined">task_alt</span> Tasks</h2>
+            <select id="task-list-select" class="btn btn-small" style="display: none; max-width: 150px; text-overflow: ellipsis;"></select>
+            <button id="refresh-todos" class="btn btn-small btn-icon" type="button" title="Sync Tasks"><span class="material-symbols-outlined">sync</span></button>
           </div>
 
           <div id="todos-empty" class="empty-state visible">
@@ -56,8 +62,9 @@
 
         <section class="card calendar-card">
           <div class="card-header">
-            <h2>📅 Calendar</h2>
-            <button id="refresh-calendar" class="btn btn-small" type="button">↻ Sync</button>
+            <h2 style="display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined">calendar_month</span> Calendar</h2>
+            <a href="https://calendar.google.com/calendar/r/eventedit" target="_blank" class="btn btn-small" style="text-decoration: none; display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add</a>
+            <button id="refresh-calendar" class="btn btn-small btn-icon" type="button" title="Sync Calendar"><span class="material-symbols-outlined">sync</span></button>
           </div>
 
           <div id="calendar-empty" class="empty-state visible">

@@ -9,7 +9,8 @@
     "storage"
   ],
   "host_permissions": [
-    "https://www.googleapis.com/*"
+    "https://www.googleapis.com/*",
+    "https://suggestqueries.google.com/*"
   ],
   "chrome_url_overrides": {
     "newtab": "newtab.html"

@@ -10,7 +10,9 @@ class HackfestDashboard {
 
     init() {
         this.cacheElements();
+        this.initClock();
         this.attachEventListeners();
+        this.initSearchSuggestions();
         this.checkAuthStatus();
         this.loadBookmarks();
         this.loadLayoutPreference();
@@ -37,6 +39,8 @@ class HackfestDashboard {
         this.userEmailEl = document.getElementById('user-email');
         this.searchForm = document.getElementById('search-form');
         this.searchInput = document.getElementById('global-search');
+        this.searchSuggestions = document.getElementById('search-suggestions');
+        this.clockEl = document.getElementById('clock');
         this.bookmarksList = document.getElementById('bookmarks-list');
         this.bookmarksEmpty = document.getElementById('bookmarks-empty');
         this.addBookmarkBtn = document.getElementById('add-bookmark');
@@ -45,6 +49,7 @@ class HackfestDashboard {
         this.newTodoInput = document.getElementById('new-todo');
         this.addTodoBtn = document.getElementById('add-todo');
         this.refreshTodosBtn = document.getElementById('refresh-todos');
+        this.taskListSelect = document.getElementById('task-list-select');
         this.calendarEvents = document.getElementById('calendar-events');
         this.calendarEmpty = document.getElementById('calendar-empty');
         this.refreshCalendarBtn = document.getElementById('refresh-calendar');
@@ -57,7 +62,11 @@ class HackfestDashboard {
         this.searchForm.addEventListener('submit', (e) => this.handleSearch(e));
         this.addBookmarkBtn.addEventListener('click', () => this.addBookmark());
         this.addTodoBtn.addEventListener('click', () => this.addTodo());
-        this.refreshTodosBtn.addEventListener('click', () => this.loadTodos());
+        this.refreshTodosBtn.addEventListener('click', () => { this.currentTaskListId = null; this.loadTodos(); });
+        this.taskListSelect.addEventListener('change', (e) => {
+            this.currentTaskListId = e.target.value;
+            this.loadTasksForCurrentList();
+        });
         this.refreshCalendarBtn.addEventListener('click', () => this.loadCalendar());
         this.signOutButton.addEventListener('click', () => this.handleSignOut());
         this.newTodoInput.addEventListener('keypress', (e) => {
@@ -74,11 +83,187 @@ class HackfestDashboard {
         const query = this.searchInput.value.trim();
         if (!query) return;
 
+        this.searchSuggestions.classList.remove('visible');
+
+        // Check if we have a selected suggestion with a URL
+        if (this.selectedSuggestionIndex >= 0 && this.currentSuggestions && this.currentSuggestions[this.selectedSuggestionIndex]) {
+            const suggestion = this.currentSuggestions[this.selectedSuggestionIndex];
+            if (suggestion.url) {
+                if (chrome?.tabs?.create) {
+                    chrome.tabs.create({ url: suggestion.url });
+                } else {
+                    window.location.href = suggestion.url;
+                }
+                return;
+            }
+        }
+        
         const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
         if (chrome?.tabs?.create) {
             chrome.tabs.create({ url: searchUrl });
         } else {
             window.location.href = searchUrl;
+        }
+    }
+
+    initClock() {
+        const updateClock = () => {
+            const now = new Date();
+            this.clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+        updateClock();
+        setInterval(updateClock, 1000);
+    }
+
+    initSearchSuggestions() {
+        let debounceTimeout;
+        this.selectedSuggestionIndex = -1;
+        this.originalSearchQuery = '';
+        
+        this.searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimeout);
+            const query = e.target.value;
+            this.originalSearchQuery = query;
+            
+            if (!query.trim()) {
+                this.searchSuggestions.classList.remove('visible');
+                return;
+            }
+
+            debounceTimeout = setTimeout(() => {
+                this.fetchSearchSuggestions(query.trim());
+            }, 150);
+        });
+
+        this.searchInput.addEventListener('keydown', (e) => {
+            const items = this.searchSuggestions.querySelectorAll('.search-suggestion-item');
+            if (!this.searchSuggestions.classList.contains('visible') || items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                this.selectedSuggestionIndex = Math.min(this.selectedSuggestionIndex + 1, items.length - 1);
+                this.updateSuggestionSelection(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                this.selectedSuggestionIndex = Math.max(this.selectedSuggestionIndex - 1, -1);
+                this.updateSuggestionSelection(items);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!this.searchForm.contains(e.target)) {
+                this.searchSuggestions.classList.remove('visible');
+            }
+        });
+        
+        this.searchInput.addEventListener('focus', () => {
+            if (this.searchInput.value.trim() && this.searchSuggestions.innerHTML !== '') {
+                this.searchSuggestions.classList.add('visible');
+            }
+        });
+    }
+
+    updateSuggestionSelection(items) {
+        items.forEach((item, i) => {
+            if (i === this.selectedSuggestionIndex) {
+                item.classList.add('active');
+                // For search type, update input value. For URL types, maybe don't update input value yet?
+                // Actually omnibar updates the input with the title or URL.
+                // Let's mimic Chrome: update input with the title/query.
+                const suggestion = this.currentSuggestions[i];
+                this.searchInput.value = suggestion.title;
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        if (this.selectedSuggestionIndex === -1) {
+            this.searchInput.value = this.originalSearchQuery;
+        }
+    }
+
+    fetchSearchSuggestions(query) {
+        // Fetch bookmark matches
+        const bookmarkPromise = new Promise((resolve) => {
+            chrome.bookmarks.search(query, resolve);
+        });
+
+        // Fetch Google search suggestions
+        const searchPromise = fetch(`https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => data[1] || [])
+            .catch(() => []);
+
+        Promise.all([bookmarkPromise, searchPromise])
+            .then(([bookmarks, searchSuggestions]) => {
+                const combined = [];
+                const seenUrls = new Set();
+
+                // 1. Add Bookmarks
+                bookmarks.slice(0, 5).forEach(b => {
+                    if (b.url && !seenUrls.has(b.url)) {
+                        combined.push({ type: 'bookmark', title: b.title || b.url, url: b.url });
+                        seenUrls.add(b.url);
+                    }
+                });
+
+                // 2. Add Search Suggestions
+                searchSuggestions.forEach(s => {
+                    combined.push({ type: 'search', title: s });
+                });
+
+                this.currentSuggestions = combined;
+                this.renderSearchSuggestions(combined);
+            });
+    }
+
+    renderSearchSuggestions(suggestions) {
+        if (suggestions.length === 0) {
+            this.searchSuggestions.classList.remove('visible');
+            return;
+        }
+
+        this.selectedSuggestionIndex = -1;
+        this.searchSuggestions.innerHTML = '';
+        
+        suggestions.forEach((suggestion, index) => {
+            const div = document.createElement('div');
+            div.className = 'search-suggestion-item';
+            
+            let icon = 'search';
+            if (suggestion.type === 'history') icon = 'history';
+            if (suggestion.type === 'bookmark') icon = 'star';
+
+            div.innerHTML = `
+                <div class="suggestion-icon">
+                    <span class="material-symbols-outlined">${icon}</span>
+                </div>
+                <div class="suggestion-content">
+                    <div class="suggestion-title">${this.escapeHtml(suggestion.title)}</div>
+                    ${suggestion.url ? `<div class="suggestion-url">${this.escapeHtml(suggestion.url)}</div>` : ''}
+                </div>
+            `;
+            
+            div.addEventListener('click', () => {
+                this.handleSuggestionAction(suggestion);
+            });
+            this.searchSuggestions.appendChild(div);
+        });
+        
+        this.searchSuggestions.classList.add('visible');
+    }
+
+    handleSuggestionAction(suggestion) {
+        this.searchSuggestions.classList.remove('visible');
+        if (suggestion.url) {
+            if (chrome?.tabs?.create) {
+                chrome.tabs.create({ url: suggestion.url });
+            } else {
+                window.location.href = suggestion.url;
+            }
+        } else {
+            this.searchInput.value = suggestion.title;
+            this.searchForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
         }
     }
 
@@ -264,7 +449,7 @@ class HackfestDashboard {
                         <img class="bookmark-icon" src="${faviconUrl}" alt="" loading="lazy" />
                         <span class="bookmark-title">${this.escapeHtml(bookmark.title)}</span>
                     </a>
-                    <button class="btn btn-delete" title="Delete bookmark">✕</button>
+                    <button class="btn btn-delete" title="Delete bookmark"><span class="material-symbols-outlined" style="font-size: 14px;">close</span></button>
                 `;
                 
                 bookmarkDiv.querySelector('.btn-delete').addEventListener('click', (e) => {
@@ -393,34 +578,50 @@ class HackfestDashboard {
                 'Authorization': `Bearer ${this.accessToken}`
             }
         })
-        .then(res => {
-            console.log('Tasklists response:', res.status);
-            return this.handleResponse(res);
-        })
+        .then(res => this.handleResponse(res))
         .then(data => {
-            console.log('Tasklists data:', data);
             if (!data.items || data.items.length === 0) {
-                console.warn('No task lists found');
                 this.todosList.innerHTML = '';
                 this.todosEmpty.classList.add('visible');
-                return Promise.reject(new Error('No task lists'));
+                this.taskListSelect.style.display = 'none';
+                return;
             }
 
-            this.currentTaskListId = data.items[0].id;
-            console.log('Loading tasks from list:', this.currentTaskListId);
-            
-            return fetch(`https://www.googleapis.com/tasks/v1/lists/${this.currentTaskListId}/tasks?showCompleted=true`, {
-                headers: {
-                    'Authorization': `Bearer ${this.accessToken}`
-                }
+            this.taskListSelect.innerHTML = '';
+            data.items.forEach(list => {
+                const option = document.createElement('option');
+                option.value = list.id;
+                option.textContent = list.title;
+                this.taskListSelect.appendChild(option);
             });
+            this.taskListSelect.style.display = 'block';
+
+            if (!this.currentTaskListId || !data.items.find(l => l.id === this.currentTaskListId)) {
+                this.currentTaskListId = data.items[0].id;
+            }
+            this.taskListSelect.value = this.currentTaskListId;
+            
+            this.loadTasksForCurrentList();
         })
-        .then(res => {
-            console.log('Tasks response:', res.status);
-            return this.handleResponse(res);
+        .catch(error => {
+            console.error('Error loading task lists:', error);
+            this.todosList.innerHTML = '';
+            this.todosEmpty.innerHTML = `<div class="empty-state visible">Error loading tasks: ${error.message}</div>`;
+        });
+    }
+
+    loadTasksForCurrentList() {
+        if (!this.accessToken || !this.currentTaskListId) return;
+
+        this.todosList.innerHTML = '<div class="loading">Loading tasks...</div>';
+
+        fetch(`https://www.googleapis.com/tasks/v1/lists/${this.currentTaskListId}/tasks?showCompleted=true`, {
+            headers: {
+                'Authorization': `Bearer ${this.accessToken}`
+            }
         })
+        .then(res => this.handleResponse(res))
         .then(data => {
-            console.log('Tasks data:', data);
             this.todosList.innerHTML = '';
 
             if (!data.items || data.items.length === 0) {
@@ -430,14 +631,54 @@ class HackfestDashboard {
 
             this.todosEmpty.classList.remove('visible');
 
-            data.items.forEach(task => {
+            // Sort tasks: incomplete first, then completed. If position is available, use it.
+            const sortedTasks = data.items.sort((a, b) => {
+                if (a.status !== b.status) {
+                    return a.status === 'completed' ? 1 : -1;
+                }
+                return (a.position || '') > (b.position || '') ? 1 : -1;
+            });
+
+            sortedTasks.forEach(task => {
                 const todoDiv = document.createElement('div');
                 const isCompleted = task.status === 'completed';
                 todoDiv.className = `todo ${isCompleted ? 'completed' : ''}`;
+                
+                let detailsHtml = '';
+                if (task.notes || task.due) {
+                    detailsHtml = '<div class="todo-details" style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">';
+                    if (task.due) {
+                        const dueDate = new Date(task.due).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        detailsHtml += `<span class="todo-due" style="margin-right: 8px;">📅 ${dueDate}</span>`;
+                    }
+                    if (task.notes) {
+                        detailsHtml += `<span class="todo-notes">${this.escapeHtml(task.notes).substring(0, 50)}${task.notes.length > 50 ? '...' : ''}</span>`;
+                    }
+                    detailsHtml += '</div>';
+                }
+
                 todoDiv.innerHTML = `
-                    <div class="todo-content">${this.escapeHtml(task.title)}</div>
-                    <button class="btn btn-delete" title="Delete task">✕</button>
+                    <div class="todo-display" style="display: flex; align-items: flex-start; gap: 8px; flex: 1; width: 100%;">
+                        <input type="checkbox" class="todo-checkbox" ${isCompleted ? 'checked' : ''} style="margin-top: 4px;">
+                        <div style="flex: 1; min-width: 0;">
+                            <div class="todo-content" style="word-break: break-word;">${this.escapeHtml(task.title)}</div>
+                            ${detailsHtml}
+                        </div>
+                        <div style="display: flex; gap: 4px; margin-top: 2px;">
+                            <button class="btn btn-edit" title="Edit task"><span class="material-symbols-outlined" style="font-size: 14px;">edit</span></button>
+                            <button class="btn btn-delete" title="Delete task"><span class="material-symbols-outlined" style="font-size: 14px;">close</span></button>
+                        </div>
+                    </div>
                 `;
+                
+                todoDiv.querySelector('.todo-checkbox').addEventListener('change', (e) => {
+                    this.toggleTodo(task, e.target.checked);
+                });
+
+                todoDiv.querySelector('.btn-edit').addEventListener('click', () => {
+                    this.renderEditForm(task, todoDiv);
+                });
+
                 todoDiv.querySelector('.btn-delete').addEventListener('click', () => {
                     this.deleteTodo(task.id);
                 });
@@ -448,6 +689,143 @@ class HackfestDashboard {
             console.error('Error loading tasks:', error);
             this.todosList.innerHTML = '';
             this.todosEmpty.innerHTML = `<div class="empty-state visible">Error loading tasks: ${error.message}</div>`;
+        });
+    }
+
+    toggleTodo(task, isCompleted) {
+        if (!this.accessToken || !this.currentTaskListId) return;
+
+        const newStatus = isCompleted ? 'completed' : 'needsAction';
+        const taskElement = [...this.todosList.children].find(el => {
+             const contentEl = el.querySelector('.todo-content');
+             return contentEl && contentEl.textContent === task.title;
+        });
+        
+        if (taskElement) {
+             if (isCompleted) taskElement.classList.add('completed');
+             else taskElement.classList.remove('completed');
+        }
+
+        fetch(`https://www.googleapis.com/tasks/v1/lists/${this.currentTaskListId}/tasks/${task.id}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${this.accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: task.id,
+                title: task.title,
+                status: newStatus
+            })
+        })
+        .then(res => this.handleResponse(res))
+        .then(() => {
+            this.loadTasksForCurrentList();
+        })
+        .catch(error => {
+            alert(`Failed to update task: ${error.message}`);
+            this.loadTasksForCurrentList();
+        });
+    }
+
+    renderEditForm(task, todoDiv) {
+        // Save the current display HTML to revert if canceled
+        const displayHtml = todoDiv.innerHTML;
+        
+        // Format datetime-local value (YYYY-MM-DDThh:mm)
+        let datetimeValue = '';
+        if (task.due) {
+            const dateObj = new Date(task.due);
+            // Adjust to local timezone for datetime-local input
+            const localDate = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000);
+            datetimeValue = localDate.toISOString().slice(0, 16);
+        }
+
+        todoDiv.innerHTML = `
+            <div class="todo-edit-form">
+                <input type="text" class="todo-edit-input edit-title" value="${this.escapeHtml(task.title)}" placeholder="Task title">
+                <input type="text" class="todo-edit-input edit-notes" value="${this.escapeHtml(task.notes || '')}" placeholder="Notes (optional)">
+                <input type="datetime-local" class="todo-edit-input edit-due" value="${datetimeValue}" title="Due Date & Time">
+                <div class="todo-edit-actions">
+                    <button class="btn btn-small btn-cancel-edit">Cancel</button>
+                    <button class="btn btn-primary btn-small btn-save-edit">Save</button>
+                </div>
+            </div>
+        `;
+
+        const titleInput = todoDiv.querySelector('.edit-title');
+        titleInput.focus();
+
+        todoDiv.querySelector('.btn-cancel-edit').addEventListener('click', () => {
+            todoDiv.innerHTML = displayHtml;
+            // Re-attach listeners for the display mode
+            todoDiv.querySelector('.todo-checkbox').addEventListener('change', (e) => {
+                this.toggleTodo(task, e.target.checked);
+            });
+            todoDiv.querySelector('.btn-edit').addEventListener('click', () => {
+                this.renderEditForm(task, todoDiv);
+            });
+            todoDiv.querySelector('.btn-delete').addEventListener('click', () => {
+                this.deleteTodo(task.id);
+            });
+        });
+
+        todoDiv.querySelector('.btn-save-edit').addEventListener('click', () => {
+            const newTitle = titleInput.value.trim();
+            if (!newTitle) {
+                alert('Title cannot be empty');
+                return;
+            }
+            const newNotes = todoDiv.querySelector('.edit-notes').value.trim();
+            const newDue = todoDiv.querySelector('.edit-due').value;
+
+            this.saveTask(task, newTitle, newNotes, newDue, todoDiv, displayHtml);
+        });
+    }
+
+    saveTask(task, newTitle, newNotes, newDue, todoDiv, displayHtml) {
+        if (!this.accessToken || !this.currentTaskListId) return;
+
+        const saveBtn = todoDiv.querySelector('.btn-save-edit');
+        saveBtn.textContent = 'Saving...';
+        saveBtn.disabled = true;
+
+        let dueTimestamp = null;
+        if (newDue) {
+            dueTimestamp = new Date(newDue).toISOString();
+        }
+
+        const updatedTask = {
+            id: task.id,
+            title: newTitle,
+            notes: newNotes,
+            status: task.status // preserve status
+        };
+
+        // We can only send due if we have it, sending null/empty string fails sometimes depending on API
+        if (dueTimestamp) {
+            updatedTask.due = dueTimestamp;
+        } else {
+            // How to clear a due date in Google Tasks API? Setting it to null in PUT request.
+            updatedTask.due = null;
+        }
+
+        fetch(`https://www.googleapis.com/tasks/v1/lists/${this.currentTaskListId}/tasks/${task.id}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${this.accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updatedTask)
+        })
+        .then(res => this.handleResponse(res))
+        .then(() => {
+            this.loadTasksForCurrentList();
+        })
+        .catch(error => {
+            alert(`Failed to save task: ${error.message}`);
+            saveBtn.textContent = 'Save';
+            saveBtn.disabled = false;
         });
     }
 
@@ -468,31 +846,20 @@ class HackfestDashboard {
         this.addTodoBtn.textContent = 'Adding...';
         this.addTodoBtn.disabled = true;
 
-        fetch('https://www.googleapis.com/tasks/v1/users/@me/lists', {
-            headers: {
-                'Authorization': `Bearer ${this.accessToken}`
-            }
-        })
-        .then(res => {
-            console.log('Task lists response:', res.status);
-            return this.handleResponse(res);
-        })
-        .then(data => {
-            console.log('Task lists data:', data);
-            if (!data.items || data.items.length === 0) {
-                throw new Error('No task lists found. Please create one in Google Tasks first.');
-            }
-            const defaultListId = data.items[0].id;
-            console.log('Using task list:', defaultListId);
+        if (!this.currentTaskListId) {
+             alert('No task list selected');
+             this.addTodoBtn.textContent = 'Add';
+             this.addTodoBtn.disabled = false;
+             return;
+        }
 
-            return fetch(`https://www.googleapis.com/tasks/v1/lists/${defaultListId}/tasks`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ title })
-            });
+        fetch(`https://www.googleapis.com/tasks/v1/lists/${this.currentTaskListId}/tasks`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ title })
         })
         .then(res => {
             console.log('Add task response:', res.status);
@@ -503,7 +870,7 @@ class HackfestDashboard {
             this.newTodoInput.value = '';
             this.addTodoBtn.textContent = 'Add';
             this.addTodoBtn.disabled = false;
-            this.loadTodos();
+            this.loadTasksForCurrentList();
         })
         .catch(error => {
             console.error('Error adding task:', error);
@@ -573,10 +940,27 @@ class HackfestDashboard {
                     ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                     : '';
 
+                let eventDetails = '';
+                if (event.hangoutLink) {
+                    eventDetails += `<a href="${event.hangoutLink}" target="_blank" class="event-meet-link" style="font-size: 0.8em; color: var(--primary-color); text-decoration: none; display: inline-block; margin-top: 4px;">🎥 Join Meet</a>`;
+                }
+
                 eventDiv.innerHTML = `
                     <div class="event-time">${formattedDate} ${formattedTime}</div>
-                    <div class="event-title">${this.escapeHtml(event.summary || 'Untitled Event')}</div>
+                    <div class="event-title">
+                        <a href="${event.htmlLink}" target="_blank" style="color: inherit; text-decoration: none;">${this.escapeHtml(event.summary || 'Untitled Event')}</a>
+                    </div>
+                    ${eventDetails}
                 `;
+                
+                // Make the whole event div clickable if they don't click on the meet link
+                eventDiv.style.cursor = 'pointer';
+                eventDiv.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'A') {
+                        window.open(event.htmlLink, '_blank');
+                    }
+                });
+
                 this.calendarEvents.appendChild(eventDiv);
             });
         })
