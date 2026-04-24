@@ -9,25 +9,25 @@ A homepage chrome extension that transforms your new tab page into a personalize
 
 ## Features
 
-### 📑 Smart Bookmarks
+### Smart Bookmarks
 - View all your Chrome bookmarks in one place
 - Quick add bookmarks directly from the dashboard
 - Delete bookmarks with one click
 - Organized and easy to navigate
 
-### ✓ Google Tasks Integration (Beta)
+### Google Tasks Integration (Beta)
 - Sync with your Google Tasks (Google Todo)
 - Create new tasks from the dashboard
 - View all your tasks at a glance
 - One-click refresh to stay in sync
 
-### 📅 Google Calendar Sync (Beta)
+### Google Calendar Sync (Beta)
 - Display upcoming events for the next 30 days
 - See event dates and times
 - Stay on top of your schedule
 - One-click calendar refresh
 
-### 🎨 Beautiful Interface
+### Beautiful Interface
 - Modern, responsive design
 - Dark gradient background
 - Smooth animations and transitions
@@ -35,13 +35,7 @@ A homepage chrome extension that transforms your new tab page into a personalize
 
 ## Quick Start
 
-### 1. Get Google API Credentials (15 min)
-Follow [GOOGLE_SETUP.md](GOOGLE_SETUP.md) to set up OAuth credentials
-
-### 2. Update manifest.json
-Replace `YOUR_GOOGLE_CLIENT_ID` with your credentials
-
-### 3. Load Extension (Choose One)
+### Load Extension (Choose One)
 
 **Easiest - Load Directly:**
 ```bash
@@ -68,9 +62,6 @@ node scripts/create-crx.js
 
 See [INSTALLATION.md](INSTALLATION.md) for complete setup instructions and troubleshooting.
 
-## Screenshots
-
-[Your dashboard will look like this when loaded]
 
 ## Project Structure
 
@@ -187,19 +178,11 @@ Possible features for future versions:
 
 ## Support
 
-- 📖 See [INSTALLATION.md](INSTALLATION.md) for detailed setup
-- 🔧 See [GOOGLE_SETUP.md](GOOGLE_SETUP.md) for API configuration
-- 🐛 Check F12 DevTools Console for errors
-- 📚 Visit [Chrome Extension Docs](https://developer.chrome.com/docs/extensions/)
-
-## License
-
-This project is open source and available under the MIT License.
+-  See [INSTALLATION.md](INSTALLATION.md) for detailed setup
+-  See [GOOGLE_SETUP.md](GOOGLE_SETUP.md) for API configuration
+-  Check F12 DevTools Console for errors
+-  Visit [Chrome Extension Docs](https://developer.chrome.com/docs/extensions/)
 
 ## Contributing
 
 Found a bug? Have a feature idea? Feel free to open an issue or submit a pull request!
-
----
-
-Made with ❤️ for the Hackfest project
