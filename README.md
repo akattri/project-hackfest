@@ -2,7 +2,8 @@
 
 A homepage chrome extension that transforms your new tab page into a personalized dashboard. Manage bookmarks, organize tasks with Google Todo integration, and stay on top of your schedule with Google Calendar sync.
 
-<img width="1921" height="1040" alt="image" src="https://github.com/user-attachments/assets/1f377637-2b96-490b-b39e-023892716260" />
+<img width="1860" height="980" alt="image" src="https://github.com/user-attachments/assets/3641c566-3dcc-4578-8097-e691c0fed692" />
+
 
 
 
@@ -63,9 +64,6 @@ node scripts/create-crx.js
 # Creates dist/hackfest-extension.crx
 ```
 
-### 4. Enjoy!
-Open a new tab and see your personalized dashboard
-
 ## Detailed Setup & Deployment
 
 See [INSTALLATION.md](INSTALLATION.md) for complete setup instructions and troubleshooting.
@@ -98,21 +96,7 @@ The extension requires these permissions:
 - `storage` - To store authentication tokens
 - `https://www.googleapis.com/*` - To access Google APIs
 
-## Technologies Used
-
-- **JavaScript ES6+** - Modern JavaScript for functionality
-- **Chrome Extensions API** - For extension functionality
-- **Google APIs** - Tasks and Calendar integration
-- **HTML5 & CSS3** - For responsive UI
-
 ## Development
-
-### To modify the extension:
-
-1. **HTML** (`newtab.html`) - Change dashboard layout
-2. **CSS** (`styles.css`) - Customize appearance
-3. **JavaScript** (`newtab.js`) - Add new features
-4. **Service Worker** (`background.js`) - Handle background tasks
 
 ### Testing changes:
 1. Edit files
