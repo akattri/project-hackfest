@@ -11,7 +11,6 @@
     <div class="container">
       <div class="top-bar" style="position: relative;">
         <div class="corner-title">Archon</div>
-        <div id="clock" class="clock"></div>
         <div class="auth-section top-auth">
           <div id="user-email" class="user-email"></div>
           <button id="layout-toggle" class="btn btn-small btn-icon" type="button" title="Toggle Layout"><span class="material-symbols-outlined">grid_view</span></button>
@@ -19,22 +18,28 @@
           <button id="sign-out-button" class="btn btn-small" type="button" style="display: none;">Sign Out</button>
         </div>
       </div>
+      <div id="clock" class="clock"></div>
 
       <main class="dashboard">
-        <section class="card search-card">
+        <section class="card search-card search-omnibar">
           <form id="search-form" class="search-section">
-            <div style="position: relative; flex: 1;">
-              <input id="global-search" type="text" placeholder="Search the web..." autocomplete="off" style="width: 100%;" />
-              <div id="search-suggestions" class="search-suggestions"></div>
+            <div class="search-bar-wrapper">
+              <span class="material-symbols-outlined search-icon">search</span>
+              <input id="global-search" type="text" placeholder="Search the web or type a URL..." autocomplete="off" />
             </div>
-            <button class="btn btn-primary" type="submit">Search</button>
+            <div id="search-suggestions" class="search-suggestions"></div>
           </form>
         </section>
 
         <section class="card bookmarks-card">
           <div class="card-header">
-            <h2 style="display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined">bookmarks</span> Bookmarks</h2>
-            <button id="add-bookmark" class="btn btn-small" type="button" style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add</button>
+            <h2 style="display: flex; align-items: center; gap: 8px;">
+              <span class="material-symbols-outlined">bookmarks</span> Bookmarks
+            </h2>
+            <div style="display: flex; gap: 8px;">
+              <button id="toggle-bookmark-view" class="btn btn-small btn-icon" type="button" title="Toggle Folder View"><span class="material-symbols-outlined">folder</span></button>
+              <button id="add-bookmark" class="btn btn-small btn-icon" type="button" title="Add Bookmark"><span class="material-symbols-outlined">add</span></button>
+            </div>
           </div>
 
           <div id="bookmarks-empty" class="empty-state visible">No bookmarks found.</div>
@@ -44,8 +49,13 @@
         <section class="card tasks-card">
           <div class="card-header">
             <h2 style="display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined">task_alt</span> Tasks</h2>
-            <select id="task-list-select" class="btn btn-small" style="display: none; max-width: 150px; text-overflow: ellipsis;"></select>
-            <button id="refresh-todos" class="btn btn-small btn-icon" type="button" title="Sync Tasks"><span class="material-symbols-outlined">sync</span></button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button id="refresh-todos" class="btn btn-small btn-icon" type="button" title="Sync Tasks"><span class="material-symbols-outlined">sync</span></button>
+              <div id="task-list-wrapper" style="position: relative; display: none;">
+                <button class="btn btn-small btn-icon" type="button" title="Task Lists"><span class="material-symbols-outlined">list</span></button>
+                <select id="task-list-select" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;"></select>
+              </div>
+            </div>
           </div>
 
           <div id="todos-empty" class="empty-state visible">
@@ -62,9 +72,13 @@
 
         <section class="card calendar-card">
           <div class="card-header">
-            <h2 style="display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined">calendar_month</span> Calendar</h2>
-            <a href="https://calendar.google.com/calendar/r/eventedit" target="_blank" class="btn btn-small" style="text-decoration: none; display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add</a>
-            <button id="refresh-calendar" class="btn btn-small btn-icon" type="button" title="Sync Calendar"><span class="material-symbols-outlined">sync</span></button>
+            <h2 style="display: flex; align-items: center; gap: 8px;">
+              <span class="material-symbols-outlined">calendar_month</span> Calendar
+            </h2>
+            <div style="display: flex; gap: 8px;">
+              <button id="refresh-calendar" class="btn btn-small btn-icon" type="button" title="Sync Calendar"><span class="material-symbols-outlined">sync</span></button>
+              <a href="https://calendar.google.com/calendar/r/eventedit" target="_blank" class="btn btn-small btn-icon" title="Add Event" style="display: flex; align-items: center; justify-content: center; text-decoration: none;"><span class="material-symbols-outlined">add</span></a>
+            </div>
           </div>
 
           <div id="calendar-empty" class="empty-state visible">

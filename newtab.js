@@ -5,6 +5,7 @@ class HackfestDashboard {
         this.accessToken = null;
         this.userEmail = null;
         this.isLocalAuth = false;
+        this.bookmarkViewMode = 'flat';
         this.init();
     }
 
@@ -14,15 +15,20 @@ class HackfestDashboard {
         this.attachEventListeners();
         this.initSearchSuggestions();
         this.checkAuthStatus();
-        this.loadBookmarks();
-        this.loadLayoutPreference();
+        this.loadLayoutPreference(() => {
+            this.loadBookmarks();
+        });
     }
 
-    loadLayoutPreference() {
-        chrome.storage.local.get(['hackfest_layout'], (result) => {
+    loadLayoutPreference(callback) {
+        chrome.storage.local.get(['hackfest_layout', 'bookmark_view_mode'], (result) => {
             if (result.hackfest_layout === '3-col') {
                 this.dashboardEl.classList.add('layout-3-col');
             }
+            if (result.bookmark_view_mode) {
+                this.bookmarkViewMode = result.bookmark_view_mode;
+            }
+            if (callback) callback();
         });
     }
 
@@ -30,6 +36,12 @@ class HackfestDashboard {
         this.dashboardEl.classList.toggle('layout-3-col');
         const is3Col = this.dashboardEl.classList.contains('layout-3-col');
         chrome.storage.local.set({ 'hackfest_layout': is3Col ? '3-col' : 'default' });
+    }
+
+    toggleBookmarkView() {
+        this.bookmarkViewMode = this.bookmarkViewMode === 'flat' ? 'folder' : 'flat';
+        chrome.storage.local.set({ 'bookmark_view_mode': this.bookmarkViewMode });
+        this.loadBookmarks();
     }
 
     cacheElements() {
@@ -44,12 +56,14 @@ class HackfestDashboard {
         this.bookmarksList = document.getElementById('bookmarks-list');
         this.bookmarksEmpty = document.getElementById('bookmarks-empty');
         this.addBookmarkBtn = document.getElementById('add-bookmark');
+        this.toggleBookmarkViewBtn = document.getElementById('toggle-bookmark-view');
         this.todosList = document.getElementById('todos-list');
         this.todosEmpty = document.getElementById('todos-empty');
         this.newTodoInput = document.getElementById('new-todo');
         this.addTodoBtn = document.getElementById('add-todo');
         this.refreshTodosBtn = document.getElementById('refresh-todos');
         this.taskListSelect = document.getElementById('task-list-select');
+        this.taskListWrapper = document.getElementById('task-list-wrapper');
         this.calendarEvents = document.getElementById('calendar-events');
         this.calendarEmpty = document.getElementById('calendar-empty');
         this.refreshCalendarBtn = document.getElementById('refresh-calendar');
@@ -61,6 +75,9 @@ class HackfestDashboard {
         this.authButton.addEventListener('click', () => this.handleAuth());
         this.searchForm.addEventListener('submit', (e) => this.handleSearch(e));
         this.addBookmarkBtn.addEventListener('click', () => this.addBookmark());
+        if (this.toggleBookmarkViewBtn) {
+            this.toggleBookmarkViewBtn.addEventListener('click', () => this.toggleBookmarkView());
+        }
         this.addTodoBtn.addEventListener('click', () => this.addTodo());
         this.refreshTodosBtn.addEventListener('click', () => { this.currentTaskListId = null; this.loadTodos(); });
         this.taskListSelect.addEventListener('change', (e) => {
@@ -111,8 +128,33 @@ class HackfestDashboard {
             const now = new Date();
             this.clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         };
-        updateClock();
-        setInterval(updateClock, 1000);
+
+        const startClock = () => {
+            stopClock();
+            updateClock();
+            const now = new Date();
+            const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+            
+            this.clockTimeout = setTimeout(() => {
+                updateClock();
+                this.clockInterval = setInterval(updateClock, 60000);
+            }, msUntilNextMinute);
+        };
+
+        const stopClock = () => {
+            if (this.clockTimeout) clearTimeout(this.clockTimeout);
+            if (this.clockInterval) clearInterval(this.clockInterval);
+        };
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopClock();
+            } else {
+                startClock();
+            }
+        });
+
+        startClock();
     }
 
     initSearchSuggestions() {
@@ -132,7 +174,7 @@ class HackfestDashboard {
 
             debounceTimeout = setTimeout(() => {
                 this.fetchSearchSuggestions(query.trim());
-            }, 150);
+            }, 300);
         });
 
         this.searchInput.addEventListener('keydown', (e) => {
@@ -268,9 +310,7 @@ class HackfestDashboard {
     }
 
     checkAuthStatus() {
-        console.log('Checking authentication status...');
         if (!this.hasConfiguredGoogleClientId()) {
-            console.log('Google OAuth client ID is not configured. Running in local mode.');
             this.updateAuthUI(false);
             return;
         }
@@ -281,12 +321,10 @@ class HackfestDashboard {
                 fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + result.hackfest_token)
                 .then(res => {
                     if (res.ok) {
-                        console.log('✓ Saved token is still valid');
                         this.accessToken = result.hackfest_token;
                         this.updateAuthUI(true);
                         this.loadGoogleData();
                     } else {
-                        console.log('Saved token expired, clearing.');
                         chrome.storage.local.remove('hackfest_token');
                         this.updateAuthUI(false);
                     }
@@ -398,41 +436,16 @@ class HackfestDashboard {
     }
 
     loadBookmarks() {
-        console.log('Loading bookmarks...');
         chrome.bookmarks.getTree((bookmarkTreeNodes) => {
             if (chrome.runtime.lastError) {
-                console.error('Bookmarks API error:', chrome.runtime.lastError);
                 this.bookmarksList.innerHTML = '';
                 this.bookmarksEmpty.innerHTML = `<div class="empty-state visible">Error loading bookmarks: ${chrome.runtime.lastError.message}</div>`;
                 return;
             }
 
-            console.log('Bookmark tree retrieved:', bookmarkTreeNodes.length, 'root nodes');
             this.bookmarksList.innerHTML = '';
-            const bookmarks = [];
-
-            const processBookmarks = (nodes) => {
-                nodes.forEach(node => {
-                    if (node.children) {
-                        processBookmarks(node.children);
-                    } else if (node.url && node.title) {
-                        bookmarks.push(node);
-                    }
-                });
-            };
-
-            processBookmarks(bookmarkTreeNodes);
-            console.log('Found', bookmarks.length, 'bookmarks');
-
-            if (bookmarks.length === 0) {
-                console.log('No bookmarks found');
-                this.bookmarksEmpty.classList.add('visible');
-                return;
-            }
-
-            this.bookmarksEmpty.classList.remove('visible');
-
-            bookmarks.forEach(bookmark => {
+            
+            const createBookmarkDiv = (bookmark) => {
                 const bookmarkDiv = document.createElement('div');
                 bookmarkDiv.className = 'bookmark';
                 bookmarkDiv.draggable = true;
@@ -457,9 +470,87 @@ class HackfestDashboard {
                     e.stopPropagation();
                     this.deleteBookmark(bookmark.id);
                 });
+                return bookmarkDiv;
+            };
 
-                this.bookmarksList.appendChild(bookmarkDiv);
-            });
+            let hasItems = false;
+
+            if (this.bookmarkViewMode === 'folder') {
+                const renderNodes = (nodes, container, isRoot = false) => {
+                    let itemsAdded = false;
+                    nodes.forEach(node => {
+                        if (node.children) {
+                            const folderDiv = document.createElement('div');
+                            folderDiv.className = `bookmark-folder ${isRoot ? '' : 'collapsed'}`;
+                            
+                            const header = document.createElement('div');
+                            header.className = 'bookmark-folder-header';
+                            // User requested < and ^ icons, matching Material Symbols chevron_left and expand_less
+                            const iconText = isRoot ? 'expand_less' : 'chevron_left'; 
+                            header.innerHTML = `
+                                <span class="material-symbols-outlined folder-icon">folder</span>
+                                <span class="folder-title">${this.escapeHtml(node.title || 'Bookmarks')}</span>
+                                <span class="material-symbols-outlined toggle-icon">${iconText}</span>
+                            `;
+                            
+                            const content = document.createElement('div');
+                            content.className = 'bookmark-folder-content';
+                            
+                            const hasChildren = renderNodes(node.children, content, false);
+                            
+                            if (hasChildren) {
+                                header.addEventListener('click', () => {
+                                    const isCollapsed = folderDiv.classList.contains('collapsed');
+                                    if (isCollapsed) {
+                                        folderDiv.classList.remove('collapsed');
+                                        header.querySelector('.toggle-icon').textContent = 'expand_less';
+                                    } else {
+                                        folderDiv.classList.add('collapsed');
+                                        header.querySelector('.toggle-icon').textContent = 'chevron_left';
+                                    }
+                                });
+                                folderDiv.appendChild(header);
+                                folderDiv.appendChild(content);
+                                container.appendChild(folderDiv);
+                                itemsAdded = true;
+                            }
+                        } else if (node.url && node.title) {
+                            container.appendChild(createBookmarkDiv(node));
+                            itemsAdded = true;
+                        }
+                    });
+                    return itemsAdded;
+                };
+
+                const rootNodes = bookmarkTreeNodes[0].children || [];
+                hasItems = renderNodes(rootNodes, this.bookmarksList, true);
+            } else {
+                const bookmarks = [];
+                const processBookmarks = (nodes) => {
+                    nodes.forEach(node => {
+                        if (node.children) {
+                            processBookmarks(node.children);
+                        } else if (node.url && node.title) {
+                            bookmarks.push(node);
+                        }
+                    });
+                };
+
+                processBookmarks(bookmarkTreeNodes);
+
+                if (bookmarks.length > 0) {
+                    hasItems = true;
+                    bookmarks.forEach(bookmark => {
+                        this.bookmarksList.appendChild(createBookmarkDiv(bookmark));
+                    });
+                }
+            }
+
+            if (!hasItems) {
+                this.bookmarksEmpty.classList.add('visible');
+            } else {
+                this.bookmarksEmpty.classList.remove('visible');
+            }
         });
     }
 
@@ -583,7 +674,7 @@ class HackfestDashboard {
             if (!data.items || data.items.length === 0) {
                 this.todosList.innerHTML = '';
                 this.todosEmpty.classList.add('visible');
-                this.taskListSelect.style.display = 'none';
+                if (this.taskListWrapper) this.taskListWrapper.style.display = 'none';
                 return;
             }
 
@@ -594,7 +685,7 @@ class HackfestDashboard {
                 option.textContent = list.title;
                 this.taskListSelect.appendChild(option);
             });
-            this.taskListSelect.style.display = 'block';
+            if (this.taskListWrapper) this.taskListWrapper.style.display = 'block';
 
             if (!this.currentTaskListId || !data.items.find(l => l.id === this.currentTaskListId)) {
                 this.currentTaskListId = data.items[0].id;
