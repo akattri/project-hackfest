@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Simple build script for Hackfest Extension
+# Simple build script for Archon
 # Creates a ZIP file that can be loaded into Chrome
 
 set -e
 
-echo "🔨 Building Hackfest Extension..."
+echo "🔨 Building Archon"
 echo ""
 
 # Create dist directory

@@ -20,6 +20,72 @@ class HackfestDashboard {
         });
     }
 
+    // --- HIG TOAST SYSTEM ---
+    showToast(message, type = 'info') {
+        const container = document.getElementById('hig-toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `hig-toast ${type}`;
+        
+        let icon = 'info';
+        if (type === 'success') icon = 'check_circle';
+        if (type === 'error') icon = 'error';
+
+        toast.innerHTML = `
+            <span class="material-symbols-outlined" style="font-size: 20px;">${icon}</span>
+            <span>${this.escapeHtml(message)}</span>
+        `;
+        
+        container.appendChild(toast);
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 250);
+        }, 3000);
+    }
+
+    confirmAction(targetElement, message, onConfirm) {
+        // If there's already a confirmation here, ignore
+        if (targetElement.querySelector('.inline-confirm')) return;
+
+        // Hide the original button/content
+        const originalDisplay = targetElement.style.display;
+        targetElement.style.display = 'none';
+
+        // Create the inline confirmation element
+        const confirmContainer = document.createElement('div');
+        confirmContainer.className = 'inline-confirm';
+        confirmContainer.innerHTML = `
+            <span class="inline-confirm-text">${this.escapeHtml(message)}</span>
+            <button class="btn btn-small btn-primary confirm-yes">Yes</button>
+            <button class="btn btn-small confirm-no">No</button>
+        `;
+
+        // Insert right after the hidden element
+        targetElement.parentNode.insertBefore(confirmContainer, targetElement.nextSibling);
+
+        const cleanup = () => {
+            confirmContainer.remove();
+            targetElement.style.display = originalDisplay;
+        };
+
+        confirmContainer.querySelector('.confirm-no').addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            cleanup();
+        });
+
+        confirmContainer.querySelector('.confirm-yes').addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            cleanup();
+            onConfirm();
+        });
+    }
+    // ------------------------
+
     loadLayoutPreference(callback) {
         chrome.storage.local.get(['hackfest_layout', 'bookmark_view_mode'], (result) => {
             if (result.hackfest_layout === '3-col') {
@@ -102,7 +168,6 @@ class HackfestDashboard {
 
         this.searchSuggestions.classList.remove('visible');
 
-        // Check if we have a selected suggestion with a URL
         if (this.selectedSuggestionIndex >= 0 && this.currentSuggestions && this.currentSuggestions[this.selectedSuggestionIndex]) {
             const suggestion = this.currentSuggestions[this.selectedSuggestionIndex];
             if (suggestion.url) {
@@ -209,9 +274,6 @@ class HackfestDashboard {
         items.forEach((item, i) => {
             if (i === this.selectedSuggestionIndex) {
                 item.classList.add('active');
-                // For search type, update input value. For URL types, maybe don't update input value yet?
-                // Actually omnibar updates the input with the title or URL.
-                // Let's mimic Chrome: update input with the title/query.
                 const suggestion = this.currentSuggestions[i];
                 this.searchInput.value = suggestion.title;
             } else {
@@ -225,12 +287,10 @@ class HackfestDashboard {
     }
 
     fetchSearchSuggestions(query) {
-        // Fetch bookmark matches
         const bookmarkPromise = new Promise((resolve) => {
             chrome.bookmarks.search(query, resolve);
         });
 
-        // Fetch Google search suggestions
         const searchPromise = fetch(`https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)
             .then(res => res.json())
             .then(data => data[1] || [])
@@ -241,7 +301,6 @@ class HackfestDashboard {
                 const combined = [];
                 const seenUrls = new Set();
 
-                // 1. Add Bookmarks
                 bookmarks.slice(0, 5).forEach(b => {
                     if (b.url && !seenUrls.has(b.url)) {
                         combined.push({ type: 'bookmark', title: b.title || b.url, url: b.url });
@@ -249,7 +308,6 @@ class HackfestDashboard {
                     }
                 });
 
-                // 2. Add Search Suggestions
                 searchSuggestions.forEach(s => {
                     combined.push({ type: 'search', title: s });
                 });
@@ -315,7 +373,6 @@ class HackfestDashboard {
             return;
         }
 
-        // Check for a saved token
         chrome.storage.local.get(['hackfest_token'], (result) => {
             if (result.hackfest_token) {
                 fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + result.hackfest_token)
@@ -365,7 +422,7 @@ class HackfestDashboard {
         }, (responseUrl) => {
             if (chrome.runtime.lastError) {
                 console.error('Auth error:', chrome.runtime.lastError);
-                alert('Authentication failed: ' + chrome.runtime.lastError.message);
+                this.showToast('Authentication failed: ' + chrome.runtime.lastError.message, 'error');
                 return;
             }
 
@@ -380,9 +437,10 @@ class HackfestDashboard {
                     chrome.storage.local.set({ 'hackfest_token': token });
                     this.updateAuthUI(true);
                     this.loadGoogleData();
+                    this.showToast('Signed in successfully', 'success');
                 } else {
                     console.error('No access token in response');
-                    alert('Authentication failed: No token received');
+                    this.showToast('Authentication failed: No token received', 'error');
                 }
             }
         });
@@ -402,6 +460,7 @@ class HackfestDashboard {
         chrome.storage.local.remove('hackfest_token');
         this.updateAuthUI(false);
         console.log('User signed out.');
+        this.showToast('Signed out', 'info');
     }
 
     updateAuthUI(isAuthenticated) {
@@ -468,7 +527,9 @@ class HackfestDashboard {
                 bookmarkDiv.querySelector('.btn-delete').addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.deleteBookmark(bookmark.id);
+                    this.confirmAction(e.currentTarget, 'Delete bookmark?', () => {
+                        this.deleteBookmark(bookmark.id);
+                    });
                 });
                 return bookmarkDiv;
             };
@@ -485,7 +546,6 @@ class HackfestDashboard {
                             
                             const header = document.createElement('div');
                             header.className = 'bookmark-folder-header';
-                            // User requested < and ^ icons, matching Material Symbols chevron_left and expand_less
                             const iconText = isRoot ? 'expand_less' : 'chevron_left'; 
                             header.innerHTML = `
                                 <span class="material-symbols-outlined folder-icon">folder</span>
@@ -600,55 +660,39 @@ class HackfestDashboard {
 
     addBookmark() {
         const title = prompt('Enter bookmark title:');
-        if (!title) {
-            console.log('Bookmark creation cancelled by user (no title)');
-            return;
-        }
+        if (!title) return;
 
         const url = prompt('Enter bookmark URL (e.g., https://example.com):');
-        if (!url) {
-            console.log('Bookmark creation cancelled by user (no URL)');
-            return;
-        }
+        if (!url) return;
 
-        // Validate URL
         try {
             new URL(url);
         } catch {
-            console.error('Invalid URL format:', url);
-            alert('Invalid URL. Please include http:// or https://');
+            this.showToast('Invalid URL. Please include http:// or https://', 'error');
             return;
         }
-
-        console.log('Creating bookmark:', { title, url });
         
         chrome.bookmarks.create({ title, url }, (newBookmark) => {
             if (chrome.runtime.lastError) {
-                console.error('Failed to create bookmark:', chrome.runtime.lastError);
-                alert(`Failed to add bookmark: ${chrome.runtime.lastError.message}`);
+                this.showToast(`Failed to add bookmark: ${chrome.runtime.lastError.message}`, 'error');
                 return;
             }
 
-            console.log('✓ Bookmark created successfully:', newBookmark);
-            alert(`✓ Bookmark added: "${title}"`);
+            this.showToast(`Bookmark added: "${title}"`, 'success');
             this.loadBookmarks();
         });
     }
 
     deleteBookmark(bookmarkId) {
-        console.log('Deleting bookmark:', bookmarkId);
-        if (confirm('Delete this bookmark?')) {
-            chrome.bookmarks.remove(bookmarkId, () => {
-                if (chrome.runtime.lastError) {
-                    console.error('Failed to delete bookmark:', chrome.runtime.lastError);
-                    alert(`Failed to delete bookmark: ${chrome.runtime.lastError.message}`);
-                    return;
-                }
+        chrome.bookmarks.remove(bookmarkId, () => {
+            if (chrome.runtime.lastError) {
+                this.showToast(`Failed to delete bookmark: ${chrome.runtime.lastError.message}`, 'error');
+                return;
+            }
 
-                console.log('✓ Bookmark deleted successfully');
-                this.loadBookmarks();
-            });
-        }
+            this.showToast('Bookmark deleted', 'success');
+            this.loadBookmarks();
+        });
     }
 
     loadGoogleData() {
@@ -657,10 +701,7 @@ class HackfestDashboard {
     }
 
     loadTodos() {
-        if (!this.accessToken || this.isLocalAuth) {
-            console.warn('No access token available');
-            return;
-        }
+        if (!this.accessToken || this.isLocalAuth) return;
 
         this.todosList.innerHTML = '<div class="loading">Loading tasks...</div>';
 
@@ -695,7 +736,6 @@ class HackfestDashboard {
             this.loadTasksForCurrentList();
         })
         .catch(error => {
-            console.error('Error loading task lists:', error);
             this.todosList.innerHTML = '';
             this.todosEmpty.innerHTML = `<div class="empty-state visible">Error loading tasks: ${error.message}</div>`;
         });
@@ -722,7 +762,6 @@ class HackfestDashboard {
 
             this.todosEmpty.classList.remove('visible');
 
-            // Sort tasks: incomplete first, then completed. If position is available, use it.
             const sortedTasks = data.items.sort((a, b) => {
                 if (a.status !== b.status) {
                     return a.status === 'completed' ? 1 : -1;
@@ -770,14 +809,15 @@ class HackfestDashboard {
                     this.renderEditForm(task, todoDiv);
                 });
 
-                todoDiv.querySelector('.btn-delete').addEventListener('click', () => {
-                    this.deleteTodo(task.id);
+                todoDiv.querySelector('.btn-delete').addEventListener('click', (e) => {
+                    this.confirmAction(e.currentTarget, 'Delete task?', () => {
+                        this.deleteTodo(task.id);
+                    });
                 });
                 this.todosList.appendChild(todoDiv);
             });
         })
         .catch(error => {
-            console.error('Error loading tasks:', error);
             this.todosList.innerHTML = '';
             this.todosEmpty.innerHTML = `<div class="empty-state visible">Error loading tasks: ${error.message}</div>`;
         });
@@ -814,20 +854,17 @@ class HackfestDashboard {
             this.loadTasksForCurrentList();
         })
         .catch(error => {
-            alert(`Failed to update task: ${error.message}`);
+            this.showToast(`Failed to update task: ${error.message}`, 'error');
             this.loadTasksForCurrentList();
         });
     }
 
     renderEditForm(task, todoDiv) {
-        // Save the current display HTML to revert if canceled
         const displayHtml = todoDiv.innerHTML;
         
-        // Format datetime-local value (YYYY-MM-DDThh:mm)
         let datetimeValue = '';
         if (task.due) {
             const dateObj = new Date(task.due);
-            // Adjust to local timezone for datetime-local input
             const localDate = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000);
             datetimeValue = localDate.toISOString().slice(0, 16);
         }
@@ -849,22 +886,23 @@ class HackfestDashboard {
 
         todoDiv.querySelector('.btn-cancel-edit').addEventListener('click', () => {
             todoDiv.innerHTML = displayHtml;
-            // Re-attach listeners for the display mode
             todoDiv.querySelector('.todo-checkbox').addEventListener('change', (e) => {
                 this.toggleTodo(task, e.target.checked);
             });
             todoDiv.querySelector('.btn-edit').addEventListener('click', () => {
                 this.renderEditForm(task, todoDiv);
             });
-            todoDiv.querySelector('.btn-delete').addEventListener('click', () => {
-                this.deleteTodo(task.id);
+            todoDiv.querySelector('.btn-delete').addEventListener('click', (e) => {
+                this.confirmAction(e.currentTarget, 'Delete task?', () => {
+                    this.deleteTodo(task.id);
+                });
             });
         });
 
         todoDiv.querySelector('.btn-save-edit').addEventListener('click', () => {
             const newTitle = titleInput.value.trim();
             if (!newTitle) {
-                alert('Title cannot be empty');
+                this.showToast('Title cannot be empty', 'error');
                 return;
             }
             const newNotes = todoDiv.querySelector('.edit-notes').value.trim();
@@ -890,14 +928,12 @@ class HackfestDashboard {
             id: task.id,
             title: newTitle,
             notes: newNotes,
-            status: task.status // preserve status
+            status: task.status
         };
 
-        // We can only send due if we have it, sending null/empty string fails sometimes depending on API
         if (dueTimestamp) {
             updatedTask.due = dueTimestamp;
         } else {
-            // How to clear a due date in Google Tasks API? Setting it to null in PUT request.
             updatedTask.due = null;
         }
 
@@ -914,7 +950,7 @@ class HackfestDashboard {
             this.loadTasksForCurrentList();
         })
         .catch(error => {
-            alert(`Failed to save task: ${error.message}`);
+            this.showToast(`Failed to save task: ${error.message}`, 'error');
             saveBtn.textContent = 'Save';
             saveBtn.disabled = false;
         });
@@ -924,21 +960,20 @@ class HackfestDashboard {
         const title = this.newTodoInput.value.trim();
         
         if (!title) {
-            alert('Please enter a task title');
+            this.showToast('Please enter a task title', 'error');
             return;
         }
         
         if (!this.accessToken) {
-            alert('Please sign in with Google first');
+            this.showToast('Please sign in with Google first', 'error');
             return;
         }
 
-        // Show loading state
         this.addTodoBtn.textContent = 'Adding...';
         this.addTodoBtn.disabled = true;
 
         if (!this.currentTaskListId) {
-             alert('No task list selected');
+             this.showToast('No task list selected', 'error');
              this.addTodoBtn.textContent = 'Add';
              this.addTodoBtn.disabled = false;
              return;
@@ -952,28 +987,21 @@ class HackfestDashboard {
             },
             body: JSON.stringify({ title })
         })
-        .then(res => {
-            console.log('Add task response:', res.status);
-            return this.handleResponse(res);
-        })
+        .then(res => this.handleResponse(res))
         .then((data) => {
-            console.log('Task added successfully:', data);
             this.newTodoInput.value = '';
             this.addTodoBtn.textContent = 'Add';
             this.addTodoBtn.disabled = false;
             this.loadTasksForCurrentList();
         })
         .catch(error => {
-            console.error('Error adding task:', error);
             this.addTodoBtn.textContent = 'Add';
             this.addTodoBtn.disabled = false;
-            alert(`Failed to add task: ${error.message}`);
+            this.showToast(`Failed to add task: ${error.message}`, 'error');
         });
     }
 
     deleteTodo(taskId) {
-        if (!confirm('Delete this task?')) return;
-        
         if (!this.accessToken || !this.currentTaskListId) return;
 
         fetch(`https://www.googleapis.com/tasks/v1/lists/${this.currentTaskListId}/tasks/${taskId}`, {
@@ -982,13 +1010,13 @@ class HackfestDashboard {
         })
         .then(res => {
             if (res.status === 204 || res.ok) {
-                console.log('Task deleted');
                 this.loadTodos();
+                this.showToast('Task deleted', 'success');
             } else {
                 return this.handleResponse(res);
             }
         })
-        .catch(error => alert(`Failed to delete task: ${error.message}`));
+        .catch(error => this.showToast(`Failed to delete task: ${error.message}`, 'error'));
     }
 
     loadCalendar() {
@@ -1022,29 +1050,31 @@ class HackfestDashboard {
 
                 const startTime = event.start.dateTime || event.start.date;
                 const date = new Date(startTime);
-                const formattedDate = date.toLocaleDateString('en-US', { 
-                    weekday: 'short', 
-                    month: 'short', 
-                    day: 'numeric' 
-                });
-                const formattedTime = event.start.dateTime 
+                
+                const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const timeStr = event.start.dateTime 
                     ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                     : '';
+                    
+                const secondSection = timeStr ? `${weekday}, ${timeStr}` : weekday;
 
                 let eventDetails = '';
                 if (event.hangoutLink) {
-                    eventDetails += `<a href="${event.hangoutLink}" target="_blank" class="event-meet-link" style="font-size: 0.8em; color: var(--primary-color); text-decoration: none; display: inline-block; margin-top: 4px;">🎥 Join Meet</a>`;
+                    eventDetails += `<a href="${event.hangoutLink}" target="_blank" class="event-meet-link" style="font-size: 0.8em; color: var(--fill-primary); text-decoration: none; display: inline-block; margin-top: 4px;">🎥 Join Meet</a>`;
                 }
 
                 eventDiv.innerHTML = `
-                    <div class="event-time">${formattedDate} ${formattedTime}</div>
+                    <div class="event-time">
+                        <div class="event-month-day">${monthDay}</div>
+                        <div class="event-weekday-time">${secondSection}</div>
+                    </div>
                     <div class="event-title">
                         <a href="${event.htmlLink}" target="_blank" style="color: inherit; text-decoration: none;">${this.escapeHtml(event.summary || 'Untitled Event')}</a>
                     </div>
                     ${eventDetails}
                 `;
                 
-                // Make the whole event div clickable if they don't click on the meet link
                 eventDiv.style.cursor = 'pointer';
                 eventDiv.addEventListener('click', (e) => {
                     if (e.target.tagName !== 'A') {
@@ -1066,22 +1096,21 @@ class HackfestDashboard {
                 throw new Error('Authentication expired. Please sign in again.');
             }
             if (response.status === 403) {
-                throw new Error('Access denied. Make sure Google Tasks and Calendar APIs are enabled.');
+                throw new Error('Access denied. Make sure APIs are enabled.');
             }
             if (response.status === 404) {
-                throw new Error('API endpoint not found. Check API configuration.');
+                throw new Error('API endpoint not found. Check configuration.');
             }
             throw new Error(`API error: ${response.status} ${response.statusText}`);
         }
         return response.json().catch(err => {
-            console.error('Failed to parse JSON response:', err);
             throw new Error('Invalid API response');
         });
     }
 
     handleError(action, error) {
         console.error(`Error ${action}:`, error);
-        console.error('Full error:', error.message);
+        this.showToast(`Error: ${error.message}`, 'error');
     }
 
     escapeHtml(text) {
@@ -1091,7 +1120,6 @@ class HackfestDashboard {
     }
 }
 
-// Initialize dashboard when DOM is ready
 let dashboard;
 document.addEventListener('DOMContentLoaded', () => {
     dashboard = new HackfestDashboard();

@@ -59,10 +59,10 @@ if (!fs.existsSync(distDir)) {
 
 console.log('\n✓ Icons ready');
 console.log(`✓ Distribution directory: ${distDir}`);
-console.log('\n✨ Build complete!');
+console.log('\n Build complete!');
 console.log('\nNext steps:');
 console.log('1. Run: npm install');
 console.log('2. Run: npm run package');
 console.log('   This will create: dist/hackfest-extension.zip');
-console.log('\n📦 To create a .crx file:');
+console.log('\ To create a .crx file:');
 console.log('   See BUILD_CRX.md for complete instructions');
