@@ -1,11 +1,8 @@
 # Archon
 
-A homepage chrome extension that transforms your new tab page into a personalized dashboard. Manage bookmarks, organize tasks with Google Todo integration, and stay on top of your schedule with Google Calendar sync.
+A homepage chrome extension that transforms your new tab page into a personalized dashboard. Manage bookmarks, organize tasks with Google Tasks integration, and stay on top of your schedule with Google Calendar sync.
 
 <img width="1860" height="980" alt="image" src="https://github.com/user-attachments/assets/3641c566-3dcc-4578-8097-e691c0fed692" />
-
-
-
 
 ## Features
 
@@ -15,174 +12,66 @@ A homepage chrome extension that transforms your new tab page into a personalize
 - Delete bookmarks with one click
 - Organized and easy to navigate
 
-### Google Tasks Integration (Beta)
-- Sync with your Google Tasks (Google Todo)
+### Google Tasks Integration
+- Sync with your Google Tasks
 - Create new tasks from the dashboard
 - View all your tasks at a glance
 - One-click refresh to stay in sync
 
-### Google Calendar Sync (Beta)
+### Google Calendar Sync
 - Display upcoming events for the next 30 days
 - See event dates and times
 - Stay on top of your schedule
 - One-click calendar refresh
 
 ### Beautiful Interface
-- Modern, responsive design
-- Dark gradient background
+- Modern, responsive design conforming to Apple Human Interface Guidelines
 - Smooth animations and transitions
-- Works on desktop and mobile-sized windows
+- Works perfectly on desktop and mobile-sized windows
+- Full dark mode support
 
-## Quick Start
+## Installation
 
-### Load Extension (Choose One)
+### Load Unpacked (Development)
+1. Clone this repository to your local machine.
+2. Open Chrome and navigate to `chrome://extensions/`.
+3. Enable **Developer Mode** in the top right corner.
+4. Click **Load unpacked** and select the directory containing this project.
+5. Open a new tab to see your new dashboard!
 
-**Easiest - Load Directly:**
-```bash
-1. Go to chrome://extensions/
-2. Enable Developer Mode
-3. Click "Load unpacked" → Select this folder
-4. Done!
-```
+## Setup Google APIs
 
-**For Sharing - Create ZIP:**
-```bash
-bash build.sh
-# Creates dist/hackfest-extension.zip
-```
-
-**For Distribution - Create CRX:**
-```bash
-npm install
-node scripts/create-crx.js
-# Creates dist/hackfest-extension.crx
-```
-
-## Detailed Setup & Deployment
-
-See [INSTALLATION.md](INSTALLATION.md) for complete setup instructions and troubleshooting.
-
-
-## Project Structure
-
-```
-.
-├── manifest.json          # Extension configuration
-├── newtab.html           # Main dashboard page
-├── newtab.js             # Dashboard logic & API integration
-├── styles.css            # Beautiful styling
-├── background.js         # Service worker for authentication
-├── popup.html            # Extension popup interface
-├── icons/                # Extension icons (16, 48, 128px)
-├── README.md             # This file
-├── INSTALLATION.md       # Detailed setup guide
-└── GOOGLE_SETUP.md       # Google API configuration guide
-```
-
-## Permissions
-
-The extension requires these permissions:
-- `bookmarks` - To display and manage bookmarks
-- `identity` - For Google OAuth authentication
-- `storage` - To store authentication tokens
-- `https://www.googleapis.com/*` - To access Google APIs
-
-## Development
-
-### Testing changes:
-1. Edit files
-2. Go to `chrome://extensions/`
-3. Click the refresh icon
-4. Open a new tab
-
-## Security & Privacy
-
-✅ **Local Storage** - All data stored locally on your device
-✅ **No Tracking** - No analytics or tracking
-✅ **Read-Only** - Limited permissions to Google services
-✅ **Secure OAuth** - Standard Google authentication
-✅ **Open Source** - Fully transparent code
-
-## Documentation
-
-| Guide | Purpose |
-|-------|---------|
-| **[INSTALLATION.md](INSTALLATION.md)** | Complete setup instructions |
-| **[GOOGLE_SETUP.md](GOOGLE_SETUP.md)** | Google API credential setup |
-| **[DEPLOYMENT.md](DEPLOYMENT.md)** | Build & deployment methods |
-| **[BUILD_CRX.md](BUILD_CRX.md)** | Creating distributable CRX files |
-| **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | Quick commands & checklists |
-| **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Common issues & solutions |
+To use the Google Tasks and Calendar integrations, you need to provide your own Google OAuth 2.0 Client ID:
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project and enable the **Google Tasks API** and **Google Calendar API**.
+3. Go to **Credentials**, create an **OAuth client ID** (Application type: Chrome app).
+4. For the Application ID, use your Chrome extension ID.
+5. Copy the generated Client ID and place it in your `manifest.json` under `oauth2.client_id`.
 
 ## Building & Packaging
 
-### For Personal Use
+If you want to package the extension for distribution:
 ```bash
-# Just load directly (no build needed)
-chrome://extensions/ → Load unpacked → Select folder
-```
-
-### For Sharing
-```bash
+# Create a zip archive for the Chrome Web Store
 bash build.sh
-# Creates dist/hackfest-extension.zip
 ```
-
-### For Distribution
+Or create a signed CRX:
 ```bash
 npm install
 node scripts/create-crx.js
-# Creates dist/hackfest-extension.crx (ready to distribute)
 ```
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for full details on all distribution methods.
+## Security & Privacy
 
-## Troubleshooting
-
-### Common Issues:
-
-**Extension won't load?**
-- Validate `manifest.json` is valid JSON
-- Check all file paths are correct
-- Try reloading the extension
-
-**Sign in fails?**
-- Verify Client ID in `manifest.json`
-- Check Google APIs are enabled
-- See [GOOGLE_SETUP.md](GOOGLE_SETUP.md)
-
-**No data showing?**
-- Click "↻ Sync" buttons to refresh
-- Sign out and sign in again
-- Check F12 console for errors
-
-**Build script errors?**
-- See [BUILD_CRX.md](BUILD_CRX.md) troubleshooting
-- Check that Node.js is installed (for npm builds)
-
-**Getting errors?**
-- Press F12 to open DevTools
-- Check the Console tab for error messages
-- See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed help
-
-## Future Enhancements
-
-Possible features for future versions:
-- Weather widget
-- Notes section
-- Search functionality
-- Customizable dashboard layout
-- Todo list filtering
-- Event details on hover
-- Dark/Light theme toggle
-
-## Support
-
--  See [INSTALLATION.md](INSTALLATION.md) for detailed setup
--  See [GOOGLE_SETUP.md](GOOGLE_SETUP.md) for API configuration
--  Check F12 DevTools Console for errors
--  Visit [Chrome Extension Docs](https://developer.chrome.com/docs/extensions/)
+✅ **Local Storage** - All data is stored locally on your device.
+✅ **No Tracking** - No analytics or user tracking.
+✅ **Read-Only Context** - Limited permissions requested to Google services.
+✅ **Secure OAuth** - Uses standard Google authentication flows.
 
 ## Contributing
 
-Found a bug? Have a feature idea? Feel free to open an issue or submit a pull request!
+Found a bug or have a feature idea? Feel free to open an issue or submit a pull request!
+
+## License
+
+MIT License

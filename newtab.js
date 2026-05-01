@@ -191,7 +191,9 @@ class HackfestDashboard {
     initClock() {
         const updateClock = () => {
             const now = new Date();
-            this.clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            this.clockEl.innerHTML = `<div class="clock-date">${dateStr}</div><div class="clock-time">${timeStr}</div>`;
         };
 
         const startClock = () => {
@@ -1051,13 +1053,14 @@ class HackfestDashboard {
                 const startTime = event.start.dateTime || event.start.date;
                 const date = new Date(startTime);
                 
-                const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dateStr = date.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
                 const timeStr = event.start.dateTime 
                     ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-                    : '';
-                    
-                const secondSection = timeStr ? `${weekday}, ${timeStr}` : weekday;
+                    : 'All Day';
 
                 let eventDetails = '';
                 if (event.hangoutLink) {
@@ -1066,8 +1069,8 @@ class HackfestDashboard {
 
                 eventDiv.innerHTML = `
                     <div class="event-time">
-                        <div class="event-month-day">${monthDay}</div>
-                        <div class="event-weekday-time">${secondSection}</div>
+                        <div class="event-month-day">${dateStr}</div>
+                        <div class="event-weekday-time">${timeStr}</div>
                     </div>
                     <div class="event-title">
                         <a href="${event.htmlLink}" target="_blank" style="color: inherit; text-decoration: none;">${this.escapeHtml(event.summary || 'Untitled Event')}</a>
