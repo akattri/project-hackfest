@@ -2,7 +2,8 @@
 
 A homepage chrome extension that transforms your new tab page into a personalized dashboard. Manage bookmarks, organize tasks with Google Tasks integration, and stay on top of your schedule with Google Calendar sync.
 
-<img width="1860" height="980" alt="image" src="https://github.com/user-attachments/assets/3641c566-3dcc-4578-8097-e691c0fed692" />
+<img width="1850" height="971" alt="image" src="https://github.com/user-attachments/assets/53c1a4df-5718-4946-b9ee-b7f826eb4e47" />
+
 
 ## Features
 
@@ -39,15 +40,6 @@ A homepage chrome extension that transforms your new tab page into a personalize
 4. Click **Load unpacked** and select the directory containing this project.
 5. Open a new tab to see your new dashboard!
 
-## Setup Google APIs
-
-To use the Google Tasks and Calendar integrations, you need to provide your own Google OAuth 2.0 Client ID:
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a new project and enable the **Google Tasks API** and **Google Calendar API**.
-3. Go to **Credentials**, create an **OAuth client ID** (Application type: Chrome app).
-4. For the Application ID, use your Chrome extension ID.
-5. Copy the generated Client ID and place it in your `manifest.json` under `oauth2.client_id`.
-
 ## Building & Packaging
 
 If you want to package the extension for distribution:
@@ -62,11 +54,10 @@ node scripts/create-crx.js
 ```
 
 ## Security & Privacy
-
-✅ **Local Storage** - All data is stored locally on your device.
-✅ **No Tracking** - No analytics or user tracking.
-✅ **Read-Only Context** - Limited permissions requested to Google services.
-✅ **Secure OAuth** - Uses standard Google authentication flows.
+  
+**No Tracking** - No analytics or user tracking.  
+**Read-Only Context** - Limited permissions requested to Google services.  
+**Secure OAuth** - Uses standard Google authentication flows.  
 
 ## Contributing
 
